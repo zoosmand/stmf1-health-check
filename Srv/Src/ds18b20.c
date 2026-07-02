@@ -210,7 +210,7 @@ static int dS18B20_ConvertTemperature(uint8_t* addr) {
     
     if (pps) {
       PIN_H(OneWire_PORT, OneWire_PIN);
-      _delay_ms(750);
+      vTaskDelay(750);
       PIN_L(OneWire_PORT, OneWire_PIN);
     } else {
       dS18B20_WaitStatus(3);  
@@ -241,9 +241,7 @@ static int DS18B20_CopyScratchpad(uint8_t* addr) {
 
   if (pps) {
     PIN_H(OneWire_PORT, OneWire_PIN);
-    
-    _delay_ms(2);
-
+    vTaskDelay(2);
     PIN_L(OneWire_PORT, OneWire_PIN);
   } else {
     dS18B20_WaitStatus(3);

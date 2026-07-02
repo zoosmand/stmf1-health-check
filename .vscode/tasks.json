@@ -25,7 +25,8 @@
       "label": "Load Firmware",
       "type": "shell",
       "osx": {
-        "command": "/Applications/SEGGER/JLink/JLinkExe -speed 6000 -if swd -device STM32F103C8 ./flash.jlink"
+        // "command": "/Applications/SEGGER/JLink/JLinkExe -speed 6000 -if swd -device STM32F103C8 ./flash.jlink"
+        "command": "st-flash write ${workspaceRoot}/build/vsarm_firmware.bin 0x08000000"
       },
       "linux": {
         "command": "st-flash write ${workspaceRoot}/build/vsarm_firmware.bin 0x08000000"

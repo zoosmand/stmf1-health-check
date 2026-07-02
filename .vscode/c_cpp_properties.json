@@ -32,8 +32,9 @@
             "VDD_VALUE=3300",
             "PREFETCH_ENABLE=1",
             "STM32F103xB",
-            "ITM_OUT=0",
-            "DSPL_OUT=putc_dspl_wh2004"
+            // "ITM_OUT=0",
+            // "DSPL_OUT=putc_dspl_wh2004",
+            "USART_OUT=USART1"
          ],
          "intelliSenseMode": "macos-clang-arm64",
          "cStandard": "c23",

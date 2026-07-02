@@ -68,13 +68,13 @@ __STATIC_INLINE void _putc(uint8_t ch) {
 
   #ifdef ITM_OUT
     ITM_SendCharChannel(ch, ITM_OUT);
- #endif
+  #endif
 
- #ifdef DSPL_OUT
+  #ifdef DSPL_OUT
     putc_dspl(ch);
- #endif
+   #endif
 
- #ifdef USART_OUT
+  #ifdef USART_OUT
     while (!(PREG_CHECK(USART_OUT->SR, USART_SR_TXE_Pos)));
     USART_OUT->DR = ch;
   #endif
