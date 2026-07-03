@@ -96,7 +96,7 @@ __STATIC_INLINE void irq_unlock(uint32_t p) {
 
 
 // -------------------------------------------------------------
-int OneWire_Reset(void) {
+ErrorStatus OneWire_Reset(void) {
 
   uint32_t p = irq_lock();
 
@@ -106,10 +106,10 @@ int OneWire_Reset(void) {
   _delay_us(15);
   
   int i = 0;
-  int status = 1;
+  ErrorStatus status = ERROR;
   while (i++ < 240) {
     if (!OneWire_Level) {
-      status = 0;
+      status = SUCCESS;
       break;
     }
     _delay_us(1);
@@ -117,7 +117,7 @@ int OneWire_Reset(void) {
 
   /* to prevent non pulled-up pin to response */
   if (i == 1) {
-    status = 1;
+    status = SUCCESS;
   } else {
     _delay_us(580 - i);
   }
@@ -217,10 +217,10 @@ int OneWire_ErrorHandler(void) {
 
 
 
-__STATIC_INLINE int OneWire_Enumerate(uint8_t* addr) {
-  if (!lastfork) return (1);
+__STATIC_INLINE ErrorStatus OneWire_Enumerate(uint8_t* addr) {
+  if (!lastfork) return (ERROR);
   
-	if (OneWire_Reset()) return (1);
+	if (OneWire_Reset()) return (ERROR);
   
   uint8_t bp = 7;
 	uint8_t prev = *addr;
@@ -253,7 +253,7 @@ __STATIC_INLINE int OneWire_Enumerate(uint8_t* addr) {
       if (!bit1) {
         curr |= 0x80;
 			} else {
-        return (1);
+        return (ERROR);
 			}
 		}
     
@@ -272,18 +272,18 @@ __STATIC_INLINE int OneWire_Enumerate(uint8_t* addr) {
     bp--;
 	}
 	lastfork = fork;
-  return (0);  
+  return (SUCCESS);  
 }
 
 
 // -------------------------------------------------------------
-int OneWire_Search(void) {
-  if (OneWire_Reset()) return (1);
+ErrorStatus OneWire_Search(void) {
+  if (OneWire_Reset()) return (ERROR);
   lastfork = 65;
   for (uint8_t i = 0; i < NUM_DEVICES_ON_BUS; i++) {
     if (OneWire_Enumerate(oneWireDevices[i].addr)) break;
   }
-  return (0);
+  return (SUCCESS);
 }
 
 
@@ -301,15 +301,15 @@ uint8_t OneWire_ReadPowerSupply(uint8_t* addr) {
  * @param   addr pointer to OneWire device address
  * @retval  (uint8_t) status of operation
  */
-int OneWire_MatchROM(uint8_t* addr) {
-  if (OneWire_Reset()) return 1;
+ErrorStatus OneWire_MatchROM(uint8_t* addr) {
+  if (OneWire_Reset()) return (ERROR);
   
   OneWire_WriteByte(MatchROM);
   for (uint8_t i = 0; i < 8; i++) {
     OneWire_WriteByte(addr[i]);
   }
 
-  return 0;
+  return (SUCCESS);
 }
 
 

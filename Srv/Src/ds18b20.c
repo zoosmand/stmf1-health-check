@@ -21,7 +21,7 @@ static SemaphoreHandle_t gOwMutex;
 
 
 /* Private defines -----------------------------------------------------------*/
-#define _delay_ms vTaskDelay
+
 
 /* Private function prototypes -----------------------------------------------*/
 static void temperatureMeasurementTask(void* parameters);
@@ -30,7 +30,7 @@ static void temperatureMeasurementTask(void* parameters);
   * @brief  Temperature measurement workflow
   * @retval none
   */
-static int temperatureMeasurement_Workflow(void); 
+static ErrorStatus temperatureMeasurement_Workflow(void); 
 
 __STATIC_INLINE void dS18B20_Command(uint8_t);
 
@@ -38,17 +38,17 @@ __STATIC_INLINE void dS18B20_Write(uint8_t, uint8_t*);
 
 static int dS18B20_Read(uint8_t, uint8_t*, uint8_t);
 
-static int dS18B20_ReadScratchpad(uint8_t*, uint8_t*);
+static ErrorStatus dS18B20_ReadScratchpad(uint8_t*, uint8_t*);
 
-static int DS18B20_CopyScratchpad(uint8_t*);
+static ErrorStatus DS18B20_CopyScratchpad(uint8_t*);
 
 static void dS18B20_ErrorHandler(void);
 
-static int dS18B20_ConvertTemperature(uint8_t*);
+static ErrorStatus dS18B20_ConvertTemperature(uint8_t*);
 
 __STATIC_INLINE void dS18B20_WaitStatus(uint16_t);
 
-static int DS18B20_GetTemperatureMeasurment(OneWireDevice_t*);
+static ErrorStatus DS18B20_GetTemperatureMeasurment(OneWireDevice_t*);
 
 
 
@@ -109,8 +109,8 @@ static void temperatureMeasurementTask(void* parameters) {
 
 
 // -------------------------------------------------------------  
-static int temperatureMeasurement_Workflow(void) {
-  if (OneWire_Reset()) return (1);
+static ErrorStatus temperatureMeasurement_Workflow(void) {
+  if (OneWire_Reset()) return (ERROR);
 
   OneWireDevice_t* devs = Get_OwDevices();
 
@@ -127,7 +127,7 @@ static int temperatureMeasurement_Workflow(void) {
     (int8_t)((*t1 & 0x0000fff0) >> 4), (uint8_t)(((*t1 & 0x0000000f) * 100) >> 4),
     (int8_t)((*t2 & 0x0000fff0) >> 4), (uint8_t)(((*t2 & 0x0000000f) * 100) >> 4)
   );
-  return (0);
+  return (SUCCESS);
 }
 
 
@@ -174,11 +174,9 @@ static int dS18B20_Read(uint8_t len, uint8_t* buf, uint8_t reverse) {
 
 
 // -------------------------------------------------------------  
-static int dS18B20_ReadScratchpad(uint8_t* buf, uint8_t* addr) {
+static ErrorStatus dS18B20_ReadScratchpad(uint8_t* buf, uint8_t* addr) {
 
-  // if (ow_lock(2000) != pdPASS) return -1;
-
-  if (OneWire_MatchROM(addr)) return (1);
+  if (OneWire_MatchROM(addr)) return (ERROR);
   dS18B20_Command(ReadScratchpad);
 
   uint8_t crc = 0;
@@ -186,26 +184,23 @@ static int dS18B20_ReadScratchpad(uint8_t* buf, uint8_t* addr) {
     OneWire_ReadByte(&buf[i]);
     crc = OneWire_CRC8(crc, buf[i]);
   }
-  if (crc) return (1);
+  if (crc) return (ERROR);
   
-  // ow_unlock();
-  return (0);
+  return (SUCCESS);
 }
 
 
 
 
 // -------------------------------------------------------------
-static int dS18B20_ConvertTemperature(uint8_t* addr) {
+static ErrorStatus dS18B20_ConvertTemperature(uint8_t* addr) {
 
-  // if (ow_lock(2000) != pdPASS) return -1;
-  
   if (*addr) {
     
-    if (OneWire_MatchROM(addr)) return (1);
+    if (OneWire_MatchROM(addr)) return (ERROR);
     uint8_t pps = OneWire_ReadPowerSupply(addr);
     
-    if (OneWire_MatchROM(addr)) return (1);
+    if (OneWire_MatchROM(addr)) return (ERROR);
     dS18B20_Command(ConvertT);
     
     if (pps) {
@@ -216,27 +211,26 @@ static int dS18B20_ConvertTemperature(uint8_t* addr) {
       dS18B20_WaitStatus(3);  
     }
   } else {
-    if (OneWire_Reset()) return (1);
+    if (OneWire_Reset()) return (ERROR);
     
     dS18B20_Command(SkipROM);
     dS18B20_Command(ConvertT);
     dS18B20_WaitStatus(3);
   }
 
-  // ow_unlock();
-  return (0);
+  return (SUCCESS);
 }
 
 
 
 
 // -------------------------------------------------------------
-static int DS18B20_CopyScratchpad(uint8_t* addr) {
+static ErrorStatus DS18B20_CopyScratchpad(uint8_t* addr) {
 
-  if (OneWire_MatchROM(addr)) return (1);
+  if (OneWire_MatchROM(addr)) return (ERROR);
   uint8_t pps = OneWire_ReadPowerSupply(addr);
 
-  if (OneWire_MatchROM(addr)) return (1);
+  if (OneWire_MatchROM(addr)) return (ERROR);
   OneWire_WriteByte(CopyScratchpad);
 
   if (pps) {
@@ -246,7 +240,7 @@ static int DS18B20_CopyScratchpad(uint8_t* addr) {
   } else {
     dS18B20_WaitStatus(3);
   }
-  return (0);
+  return (SUCCESS);
 }
 
 
@@ -272,11 +266,11 @@ static void dS18B20_ErrorHandler(void) {
 
 
 // -------------------------------------------------------------  
-static int DS18B20_GetTemperatureMeasurment(OneWireDevice_t *dev) {
+static ErrorStatus DS18B20_GetTemperatureMeasurment(OneWireDevice_t *dev) {
 
-  if (dS18B20_ConvertTemperature(dev->addr)) return (1);
-  if (dS18B20_ReadScratchpad(dev->spad, dev->addr)) return (1);
+  if (dS18B20_ConvertTemperature(dev->addr)) return (ERROR);
+  if (dS18B20_ReadScratchpad(dev->spad, dev->addr)) return (ERROR);
   dS18B20_WaitStatus(3);
 
-  return (0);
+  return (SUCCESS);
 }

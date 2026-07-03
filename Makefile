@@ -44,7 +44,12 @@ $(wildcard Periph/Src/*.c) \
 $(wildcard Srv/Src/*.c) \
 $(wildcard FreeRTOS-Kernel/*.c) \
 $(wildcard FreeRTOS-Kernel/portable/GCC/ARM_CM3/*.c) \
-FreeRTOS-Kernel/portable/MemMang/heap_4.c
+FreeRTOS-Kernel/portable/MemMang/heap_4.c \
+$(wildcard Ethernet/*.c) \
+$(wildcard Ethernet/W5500/*.c) \
+$(wildcard Ethernet/DHCP/*.c) \
+$(wildcard Ethernet/DNS/*.c) \
+$(wildcard Ethernet/loopback/*.c)
 
 # ASM sources
 ASM_SOURCES =  \
@@ -124,6 +129,7 @@ C_INCLUDES =  \
 -IDrivers/CMSIS/Include \
 -IFreeRTOS-Kernel/include \
 -IFreeRTOS-Kernel/portable/GCC/ARM_CM3 \
+-IEthernet
 
 # AS includes
 AS_INCLUDES = $(C_INCLUDES)

@@ -33,7 +33,7 @@
   * @param  port: pointer to the USART port instance
   * @retval (int) Status of operation (0 = success)
   */
-int USART_Init(USART_TypeDef*);
+ErrorStatus USART_Init(USART_TypeDef*);
 
 
 #ifdef __cplusplus

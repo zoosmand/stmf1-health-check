@@ -16,7 +16,8 @@
             "${workspaceRoot}/Periph/Inc",
             "${workspaceRoot}/Srv/Inc",
             "${workspaceRoot}/FreeRTOS-Kernel/include",
-            "${workspaceRoot}/FreeRTOS-Kernel/portable/GCC/ARM_CM3"
+            "${workspaceRoot}/FreeRTOS-Kernel/portable/GCC/ARM_CM3",
+            "${workspaceRoot}/Ethernet"
          ],
          "defines": [
             "DEBUG",

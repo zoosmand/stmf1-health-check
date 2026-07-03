@@ -136,3 +136,9 @@ void _delay_us(uint32_t us) {
   while ((READ_REG(DWT->CYCCNT) - start) < ticks) { __asm volatile("nop"); }
   DWT->CTRL &= ~(DWT_CTRL_CYCEVTENA_Msk | DWT_CTRL_CYCCNTENA_Msk);
 }
+
+
+
+void _delay_ms(uint32_t ms) {
+  _delay_us(ms * 1000);
+}

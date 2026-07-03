@@ -27,7 +27,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <unistd.h>
+// #include <unistd.h>
 
 #include "misc.h"
 #include "stm32f103xb.h"
@@ -39,9 +39,14 @@ extern "C" {
 #include "gpio.h"
 #include "usart.h"
 #include "onewire.h"
+#include "spi.h"
 
 #include "heart_beat.h"
 #include "ds18b20.h"
+#include "eth_loopback.h"
+
+#include "wizchip_port.h"
+
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -54,8 +59,9 @@ extern "C" {
 /* Private defines -----------------------------------------------------------*/
 /* Peripherals readiness flags */
 #define _PR_HEART_BEAT_LED    0
-#define _PR_USART             1
+#define _PR_USART1_BUS        1
 #define _PR_ONEWIRE_BUS       2
+#define _PR_SPI1_BUS          3
 
 /* Exported functions prototypes ---------------------------------------------*/
 
@@ -76,6 +82,7 @@ extern uint32_t Get_BitBandVal(uint32_t);
  * 
  */
 void _delay_us(uint32_t);
+void _delay_ms(uint32_t);
 
 
 #ifdef __cplusplus

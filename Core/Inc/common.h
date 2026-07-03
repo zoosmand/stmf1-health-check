@@ -25,17 +25,14 @@
 /* Private typedef -----------------------------------------------------------*/
 
 /* Private defines -----------------------------------------------------------*/
-#define GPIO_IDR_Offset             (uint16_t)0x0008
-#define GPIO_ODR_Offset             (uint16_t)0x000c
-#define GPIO_BSRR_Offset            (uint16_t)0x0010
-#define GPIO_BRR_Offset             (uint16_t)0x0014
+/* NVIC */
+#define NVIC_PRIORITYGROUP_0         0x00000007U /*!< 0 bits for pre-emption priority 4 bits for subpriority */
+#define NVIC_PRIORITYGROUP_1         0x00000006U /*!< 1 bits for pre-emption priority 3 bits for subpriority */
+#define NVIC_PRIORITYGROUP_2         0x00000005U /*!< 2 bits for pre-emption priority 2 bits for subpriority */
+#define NVIC_PRIORITYGROUP_3         0x00000004U /*!< 3 bits for pre-emption priority 1 bits for subpriority */
+#define NVIC_PRIORITYGROUP_4         0x00000003U /*!< 4 bits for pre-emption priority 0 bits for subpriority */
 
-#define NVIC_PRIORITYGROUP_0        ((uint32_t)0x00000007) /*!< 0 bit  for pre-emption priority, 4 bits for subpriority */
-#define NVIC_PRIORITYGROUP_1        ((uint32_t)0x00000006) /*!< 1 bit  for pre-emption priority, 3 bits for subpriority */
-#define NVIC_PRIORITYGROUP_2        ((uint32_t)0x00000005) /*!< 2 bits for pre-emption priority, 2 bits for subpriority */
-#define NVIC_PRIORITYGROUP_3        ((uint32_t)0x00000004) /*!< 3 bits for pre-emption priority, 1 bit  for subpriority */
-#define NVIC_PRIORITYGROUP_4        ((uint32_t)0x00000003) /*!< 4 bits for pre-emption priority, 0 bit  for subpriority */
-
+/* GPIO*/
 #define GPIO_PIN_0                  GPIO_BSRR_BS0_Pos /*!< Select pin 0 */
 #define GPIO_PIN_0_Pos              GPIO_PIN_0
 #define GPIO_PIN_0_Mask             0x0000000f
@@ -86,21 +83,53 @@
 #define GPIO_PIN_15_Mask            0xf0000000
 #define GPIO_PIN_ALL                (uint16_t)0xffff /*!< Select all pins */
 
-#define _GPO_PP                     0b0000 // General purpose output push-pull
-#define _GPO_OD                     0b0100 // General purpose output open drain
-#define _IOS_2                      0b0010 // I/O speed is 2 MHz
-#define _IOS_10                     0b0001 // I/O speed is 10 MHz
-#define _IOS_50                     0b0011 // I/O speed is 50 MHz
-#define _AF_PP                      0b1000 // Alterhative function push-pull
-#define _AF_OD                      0b1100 // Alterhative function open drain
-#define _IN_AN                      0b0000 // Input analog
-#define _IN_FL                      0b0100 // Input floating point
-#define _IN_PD                      0b1000 // correspondent ODR register pin has to be 0
-#define _IN_PU                      0b1000 // correspondent ODR register pin has to be 1
+/* GPIO Modes bit definitions */
+#define GPIO_GPO_PP                 0b0000 // General purpose output push-pull
+#define GPIO_GPO_OD                 0b0100 // General purpose output open drain
+#define GPIO_IOS_2                  0b0010 // I/O speed is 2 MHz
+#define GPIO_IOS_10                 0b0001 // I/O speed is 10 MHz
+#define GPIO_IOS_50                 0b0011 // I/O speed is 50 MHz
+#define GPIO_AF_PP                  0b1000 // Alterhative function push-pull
+#define GPIO_AF_OD                  0b1100 // Alterhative function open drain
+#define GPIO_IN_AN                  0b0000 // Input analog
+#define GPIO_IN_FL                  0b0100 // Input floating point
+#define GPIO_IN_PD                  0b1000 // correspondent ODR register pin has to be 0
+#define GPIO_IN_PU                  0b1000 // correspondent ODR register pin has to be 1
 
-#define IWDG_KEY_RELOAD             0x0000aaaa               /*!< IWDG Reload Counter Enable   */
-#define IWDG_KEY_ENABLE             0x0000cccc               /*!< IWDG Peripheral Enable       */
-#define IWDG_KEY_WR_ACCESS_ENABLE   0x00005555               /*!< IWDG KR Write Access Enable  */
+/* GPIO Alternative function defines */
+#define GPIO_AF_0                   0b0000 /*!< Select alternate function 0 */
+#define GPIO_AF_1                   0b0001 /*!< Select alternate function 1 */
+#define GPIO_AF_2                   0b0010 /*!< Select alternate function 2 */
+#define GPIO_AF_3                   0b0011 /*!< Select alternate function 3 */
+#define GPIO_AF_4                   0b0100 /*!< Select alternate function 4 */
+#define GPIO_AF_5                   0b0101 /*!< Select alternate function 5 */
+#define GPIO_AF_6                   0b0110 /*!< Select alternate function 6 */
+#define GPIO_AF_7                   0b0111 /*!< Select alternate function 7 */
+#define GPIO_AF_8                   0b1000 /*!< Select alternate function 8 */
+#define GPIO_AF_9                   0b1001 /*!< Select alternate function 9 */
+#define GPIO_AF_10                  0b1010 /*!< Select alternate function 10 */
+#define GPIO_AF_11                  0b1011 /*!< Select alternate function 11 */
+#define GPIO_AF_12                  0b1100 /*!< Select alternate function 12 */
+#define GPIO_AF_13                  0b1101 /*!< Select alternate function 13 */
+#define GPIO_AF_14                  0b1110 /*!< Select alternate function 14 */
+#define GPIO_AF_15                  0b1111 /*!< Select alternate function 15 */
+/* GPIO Register Offcets */
+#define GPIO_IDR_Offset             (uint16_t)0x0008
+#define GPIO_ODR_Offset             (uint16_t)0x000c
+#define GPIO_BSRR_Offset            (uint16_t)0x0010
+#define GPIO_BRR_Offset             (uint16_t)0x0014
+
+/* EXTI */
+#define EXTI_TRIGGER_NONE           0b00 /*!< No Trigger Mode */
+#define EXTI_TRIGGER_RISING         0b01 /*!< Trigger Rising Mode */
+#define EXTI_TRIGGER_FALLING        0b10 /*!< Trigger Falling Mode */
+#define EXTI_TRIGGER_BOTH           0b11 /*!< Trigger Rising & Falling Mode */
+
+/* IWDG */
+#define IWDG_KEY_RELOAD             0x0000aaaa
+#define IWDG_KEY_ENABLE             0x0000cccc
+#define IWDG_KEY_ACCESS             0x00005555
+#define IWDG_RELOAD_COUNTER         0x00000fff /* 4095 */
 
 
 

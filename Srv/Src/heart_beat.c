@@ -58,7 +58,7 @@ static void heartBeatTask(void* parameters) {
   (void) parameters;
 
   while(1) {
-      heartBeat_Blink(GPIOC, GPIO_PIN_13, vTaskDelay, 1200);
+      heartBeat_Blink(HEARTBEAT_PORT, HEARTBEAT_PIN, vTaskDelay, 1200);
   }
 }
 

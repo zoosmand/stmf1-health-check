@@ -37,7 +37,7 @@ typedef struct {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-int OneWire_Reset(void);
+ErrorStatus OneWire_Reset(void);
 
 void OneWire_WriteByte(uint8_t);
 
@@ -47,7 +47,7 @@ void OneWire_ReadByte(uint8_t*);
 
 uint8_t OneWire_CRC8(uint8_t, uint8_t);
 
-int OneWire_Search(void);
+ErrorStatus OneWire_Search(void);
 
 void OneWireBusConfigurationInit(void);
 
@@ -63,7 +63,7 @@ uint8_t OneWire_ReadPowerSupply(uint8_t*);
  * @param   addr pointer to OneWire device address
  * @retval  (uint8_t) status of operation
  */
-int OneWire_MatchROM(uint8_t*);
+ErrorStatus OneWire_MatchROM(uint8_t*);
 
 
 OneWireDevice_t* Get_OwDevices(void);

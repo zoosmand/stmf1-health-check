@@ -31,12 +31,18 @@ __IO uint32_t _PREG_ = 0;
 int main(void) {
 
   /* Initialization of necessary peripherals */
-  if (!LED_Init(HEAR_BEAT_PORT, HEAR_BEAT_PIN)) FLAG_SET(_PREG_, _PR_HEART_BEAT_LED);
+  if (!LED_Init(HEARTBEAT_PORT, HEARTBEAT_PIN)) FLAG_SET(_PREG_, _PR_HEART_BEAT_LED);
   if (!OneWire_Init(OneWire_PORT, OneWire_PIN)) FLAG_SET(_PREG_, _PR_ONEWIRE_BUS);
-  if (!USART_Init(USART1)) FLAG_SET(_PREG_, _PR_USART);
+  if (!USART_Init(USART1)) FLAG_SET(_PREG_, _PR_USART1_BUS);
+  if (!SPI_Init(SPI1) && !(EthSPI_Init(ETH_CS_Port, ETH_CS_Pin)) && !(EthSPI_Init(ETH_RST_Port, ETH_RST_Pin))){
+
+    SPI_AdjustInit(SPI1);
+    FLAG_SET(_PREG_, _PR_SPI1_BUS);
+  }
 
   printf("Peripherals rediness list: 0x%08lx\n", _PREG_);
   
+  W5500_Init();
   
   /* Run the Heartbeat Service */
   HeartBeatService();
@@ -44,6 +50,10 @@ int main(void) {
   /* Run the Temperature Measurment Service */
   OneWireBusConfigurationInit();
   TemperatureMeasurmentService();
+
+  /* Ethernet Loopback */
+  EthLoopbackService();
+
 
   /* Start the scheduler. */
   vTaskStartScheduler();
