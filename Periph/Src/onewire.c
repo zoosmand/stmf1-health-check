@@ -50,7 +50,7 @@ void OneWireBusConfigurationInit(void) {
     "OW Bus Init",
     configMINIMAL_STACK_SIZE,
     NULL,
-    tskIDLE_PRIORITY + 1U,
+    configMAX_PRIORITIES - 2U,
     &(oneWireBusConfigurationTaskStack[0]),
     &(oneWireBusConfigurationTaskTCB)
   );

@@ -69,7 +69,7 @@ static void ethLoopbackTask(void* parameters) {
 
 static void ethLoopback(void) {
   // vTaskDelay(10);
-  SPI_Enable(SPI1);
+  if (SPI_Enable(SPI1)) return;
   loopback_tcps(0, loopback_buf, 5300);
   loopback_tcps(1, loopback_buf2, 5301);
   SPI_Disable(SPI1);

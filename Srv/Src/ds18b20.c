@@ -83,7 +83,7 @@ void TemperatureMeasurmentService(void) {
     "Temp Meas",
     configMINIMAL_STACK_SIZE * 4,
     NULL,
-    tskIDLE_PRIORITY + 1,
+    configMAX_PRIORITIES - 2,
     &(temperatureMeasurementTaskStack[0]),
     &(temperatureMeasurementTaskTCB)
   );

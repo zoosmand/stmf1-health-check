@@ -14,10 +14,7 @@
 #include "DHCP/dhcp.h"
 #include "DNS/dns.h"
 
-// #define W5500_SPI hspi1
-// #define LOG_UART  huart1
 #define USE_DHCP  1
-
 
 wiz_NetInfo netInfo = {
     .mac = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
@@ -47,15 +44,12 @@ void W5500_Unselect(void) { W5500_CS_HIGH(); }
 uint8_t W5500_ReadByte(void)
 {
     uint8_t rx;
-    uint8_t tx = 0xff;
-    // HAL_SPI_TransmitReceive(&W5500_SPI, &tx, &rx, 1, HAL_MAX_DELAY);
     SPI_Read_8b(SPI1, &rx, 1);
     return rx;
 }
 
 void W5500_WriteByte(uint8_t byte)
 {
-    // HAL_SPI_Transmit(&W5500_SPI, &byte, 1, HAL_MAX_DELAY);
     SPI_Write_8b(SPI1, &byte, 1);
 }
 
