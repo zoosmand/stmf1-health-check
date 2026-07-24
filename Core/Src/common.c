@@ -66,15 +66,15 @@ __STATIC_INLINE uint32_t ITM_SendCharChannel(uint32_t ch, uint32_t channel) {
 __STATIC_INLINE void _putc(uint8_t ch) {
   if (ch == '\n') _putc('\r');
 
-  #ifdef SWO_ITM
-    ITM_SendCharChannel(ch, SWO_ITM);
- #endif
+  #ifdef ITM_OUT
+    ITM_SendCharChannel(ch, ITM_OUT);
+  #endif
 
- #ifdef DSPL_OUT
+  #ifdef DSPL_OUT
     putc_dspl(ch);
- #endif
+   #endif
 
- #ifdef USART_OUT
+  #ifdef USART_OUT
     while (!(PREG_CHECK(USART_OUT->SR, USART_SR_TXE_Pos)));
     USART_OUT->DR = ch;
   #endif
@@ -135,4 +135,10 @@ void _delay_us(uint32_t us) {
   uint32_t const ticks = us * (configCPU_CLOCK_HZ / 1000000U);
   while ((READ_REG(DWT->CYCCNT) - start) < ticks) { __asm volatile("nop"); }
   DWT->CTRL &= ~(DWT_CTRL_CYCEVTENA_Msk | DWT_CTRL_CYCCNTENA_Msk);
+}
+
+
+
+void _delay_ms(uint32_t ms) {
+  _delay_us(ms * 1000);
 }

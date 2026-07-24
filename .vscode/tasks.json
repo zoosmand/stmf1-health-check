@@ -25,11 +25,10 @@
       "label": "Load Firmware",
       "type": "shell",
       "osx": {
-        "command": "/Applications/SEGGER/JLink/JLinkExe -speed 6000 -if swd -device STM32F103C8 ./flash.jlink"
-        // "command": "st-flash write ${workspaceRoot}/build/vsarm_firmware.bin 0x08000000"
+        // "command": "/Applications/SEGGER/JLink/JLinkExe -speed 6000 -if swd -device STM32F103C8 ./flash.jlink"
+        "command": "st-flash write ${workspaceRoot}/build/vsarm_firmware.bin 0x08000000"
       },
       "linux": {
-        // "command": "JLinkExe -speed 6000 -if swd -device STM32F103C8 ./flash.jlink"
         "command": "st-flash write ${workspaceRoot}/build/vsarm_firmware.bin 0x08000000"
       },
       "options": {
@@ -45,6 +44,13 @@
       "label": "Make Clean",
       "type": "shell",
       "command": "make clean"
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: clean",
+      "command": "clean",
+      "problemMatcher": [],
+      "detail": "CMake template clean task"
     }
   ]
 }

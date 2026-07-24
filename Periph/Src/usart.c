@@ -20,11 +20,11 @@
 /* Private function prototypes -----------------------------------------------*/
 
 
-int USART_Init(USART_TypeDef* port) {
+ErrorStatus USART_Init(USART_TypeDef* USARTx) {
 
-  if (port == USART1) {
+  if (USARTx == USART1) {
 
-    MODIFY_REG(GPIOA->CRH, (GPIO_PIN_9_Mask | GPIO_PIN_10_Mask), (((_IOS_50 | _AF_PP) << (GPIO_PIN_9 - 8) * 4) | (_IN_FL << (GPIO_PIN_10 - 8) * 4)));
+    MODIFY_REG(GPIOA->CRH, (GPIO_PIN_9_Mask | GPIO_PIN_10_Mask), (((GPIO_IOS_50 | GPIO_AF_PP) << (GPIO_PIN_9 - 8) * 4) | (GPIO_IN_FL << (GPIO_PIN_10 - 8) * 4)));
 
     #define USART1_BAUDRATE         115200
     #define USART1_FRACTION         0x0001 /* If baudrate = 9600 -> Fractual = 0x0120 */
@@ -37,8 +37,8 @@ int USART_Init(USART_TypeDef* port) {
     NVIC_SetPriority(USART1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 5, 0));
     NVIC_EnableIRQ(USART1_IRQn);
 
-    return 0;
+    return (SUCCESS);
   }
 
-  return 1;
+  return (ERROR);
 }
