@@ -22,10 +22,19 @@
 #error "Unsupported WHxxxx display model"
 #endif
 
+#if (WH_DSPL_LINE_MODE == 1)
+#define WHXXXX_FUNCTION_SET 0x20U
+#elif (WH_DSPL_LINE_MODE == 2)
+#define WHXXXX_FUNCTION_SET 0x28U
+#else
+#error "WH_DSPL_LINE_MODE must be 1 or 2"
+#endif
+
 static I2C_TypeDef* displayI2C;
 static uint8_t displayAddress;
 static uint8_t displayRow;
 static uint8_t displayColumn;
+static FunctionalState displayReady;
 static SemaphoreHandle_t displayMutex;
 static StaticSemaphore_t displayMutexBuffer;
 
@@ -41,6 +50,7 @@ static void whxxxx_Unlock(void);
 
 // -------------------------------------------------------------
 ErrorStatus WHxxxx_Init(I2C_TypeDef* i2c, uint8_t address) {
+  displayReady = DISABLE;
   displayI2C = i2c;
   displayAddress = address;
   displayRow = 0U;
@@ -58,12 +68,13 @@ ErrorStatus WHxxxx_Init(I2C_TypeDef* i2c, uint8_t address) {
   if (whxxxx_WriteNibble(0x20U, 0U) != SUCCESS) return (ERROR);
   _delay_us(40U);
 
-  if (whxxxx_Command(0x20U) != SUCCESS) return (ERROR); /* 4-bit, 1-line font mode */
+  if (whxxxx_Command(WHXXXX_FUNCTION_SET) != SUCCESS) return (ERROR);
   if (whxxxx_Command(0x0CU) != SUCCESS) return (ERROR); /* Display on, cursor off */
   if (whxxxx_Command(0x01U) != SUCCESS) return (ERROR); /* Clear display */
   _delay_us(1640U);
   if (whxxxx_Command(0x06U) != SUCCESS) return (ERROR); /* Increment cursor */
 
+  displayReady = ENABLE;
   return (SUCCESS);
 }
 
@@ -72,6 +83,7 @@ ErrorStatus WHxxxx_Init(I2C_TypeDef* i2c, uint8_t address) {
 
 // -------------------------------------------------------------
 ErrorStatus WHxxxx_Clear(void) {
+  if (displayReady != ENABLE) return (ERROR);
   if (whxxxx_Lock() != SUCCESS) return (ERROR);
   ErrorStatus status = whxxxx_Command(0x01U);
   if (status == SUCCESS) {
@@ -88,7 +100,7 @@ ErrorStatus WHxxxx_Clear(void) {
 
 // -------------------------------------------------------------
 ErrorStatus WHxxxx_Print(const uint8_t* buffer, uint16_t length) {
-  if (buffer == NULL) return (ERROR);
+  if ((displayReady != ENABLE) || (buffer == NULL)) return (ERROR);
   if (whxxxx_Lock() != SUCCESS) return (ERROR);
 
   ErrorStatus status = SUCCESS;
@@ -107,7 +119,9 @@ ErrorStatus WHxxxx_Print(const uint8_t* buffer, uint16_t length) {
 
 // -------------------------------------------------------------
 int putc_dspl_wh(char character) {
-  if ((displayI2C == NULL) || (displayMutex == NULL)) return (ERROR);
+  if ((displayReady != ENABLE) || (displayI2C == NULL) || (displayMutex == NULL)) {
+    return (ERROR);
+  }
   if (whxxxx_Lock() != SUCCESS) return (ERROR);
 
   ErrorStatus status = SUCCESS;
