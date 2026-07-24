@@ -147,12 +147,15 @@ static void temperatureSensorService_MeasureBmx280(void) {
 
   printf("BMx280: ");
   temperatureSensorService_PrintCentiDegrees(device->Results.temperature);
-  printf(
-    " C, %lu Pa, %u.%03u %%RH\n",
-    (unsigned long)device->Results.pressure,
-    (unsigned int)(device->Results.humidity / 1024U),
-    (unsigned int)(((uint32_t)(device->Results.humidity % 1024U) * 1000U) / 1024U)
-  );
+  printf(" C, %lu Pa", (unsigned long)device->Results.pressure);
+  if (device->DevID == BME280_ID) {
+    printf(
+      ", %lu.%03lu %%RH",
+      (unsigned long)(device->Results.humidity / 1024U),
+      (unsigned long)(((device->Results.humidity % 1024U) * 1000U) / 1024U)
+    );
+  }
+  printf("\n");
 }
 
 

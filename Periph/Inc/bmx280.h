@@ -23,13 +23,17 @@
 #define BMX280_CTRL_MEAS             0xF4U
 #define BMX280_SETTINGS              0xF5U
 #define BMX280_DATA                  0xF7U
+#define BMX280_RESET                 0xE0U
 
 #define BMX280_MEASURING             0x08U
+#define BMX280_IM_UPDATE             0x01U
+#define BMX280_RESET_VALUE           0xB6U
 #define BMX280_TEMPERATURE_OVS_X4    (0x03U << 5U)
 #define BMX280_PRESSURE_OVS_X4       (0x03U << 2U)
 #define BMX280_HUMIDITY_OVS_X4       0x03U
 #define BMX280_CONFIG_INACTIVE_250   (0x03U << 5U)
 #define BMX280_CONFIG_FILTER_4       (0x02U << 2U)
+#define BMX280_SLEEP_MODE            0x00U
 #define BMX280_FORCE_MODE            0x01U
 
 ErrorStatus BMx280_Init(BMxX80_TypeDef*);

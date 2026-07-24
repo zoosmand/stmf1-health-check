@@ -16,7 +16,7 @@
 typedef struct {
   uint32_t pressure;
   int32_t temperature;
-  uint16_t humidity;
+  uint32_t humidity;
   uint16_t gas_resistance;
   uint8_t gas_range;
   bool gas_valid;
