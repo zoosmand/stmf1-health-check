@@ -80,4 +80,6 @@ typedef struct {
   uint8_t I2C_Address;
 } BMxX80_TypeDef;
 
+BMxX80_TypeDef* Get_BoschDevice(uint16_t);
+
 #endif /* __BMXX80_H */

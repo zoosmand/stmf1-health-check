@@ -1,11 +1,11 @@
 /**
   ******************************************************************************
-  * @file           : bmx_service.c
-  * @brief          : Bosch BMx sensor device configuration.
+  * @file           : bmxx80.c
+  * @brief          : Bosch BMx sensor device instances.
   ******************************************************************************
   */
 
-#include "bmx_service.h"
+#include "bmxx80.h"
 #include "bmx280.h"
 #include "bmx680.h"
 #include <stddef.h>

@@ -48,12 +48,6 @@ int main(void) {
         FLAG_SET(_PREG_, _PR_WH_DISPLAY);
       }
     #endif
-    if (BMx280_Init(Get_BoschDevice(BMX280_MODEL)) != SUCCESS) {
-      FLAG_SET(_PREG_, _PR_BMX280);
-    }
-    if (BMx680_Init(Get_BoschDevice(BMX680_MODEL)) != SUCCESS) {
-      FLAG_SET(_PREG_, _PR_BMX680);
-    }
   }
 
   if (!FLAG_CHECK(_PREG_, _PR_SPI1_BUS) && (W5500_Init() != 0)) {
@@ -65,9 +59,9 @@ int main(void) {
   /* Run the Heartbeat Service */
   HeartBeatService();
 
-  /* Run the Temperature Measurment Service */
+  /* Run the Temperature Measurement Service */
   OneWireBusConfigurationInit();
-  TemperatureMeasurmentService();
+  TemperatureSensorService_Init();
 
   /* TCP command service */
   if (!FLAG_CHECK(_PREG_, _PR_SPI1_BUS)) {

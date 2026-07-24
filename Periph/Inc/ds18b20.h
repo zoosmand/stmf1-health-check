@@ -1,9 +1,7 @@
 /**
   ******************************************************************************
   * @file           : ds18b20.h
-  * @brief          : Header for ds18b20.c file.
-  *                   This file contains the common defines for DS18B20
-  *                   temperature measurment service.
+  * @brief          : DS18B20 temperature sensor interface.
   ******************************************************************************
   * @attention
   *
@@ -23,23 +21,14 @@
 
 
 
-/* Exported functions prototypes ---------------------------------------------*/
-
 /**
-  * @brief  Temperature measurement service based on OneWire devices
-  * @param  none
-  * @retval none
- */
-void TemperatureMeasurmentService(void);
-
-/**
-  * @brief  Copies the most recent temperatures measured by the periodic service.
+  * @brief  Converts and reads temperatures from discovered DS18B20 devices.
   * @param  temperatures Output array in hundredths of a degree Celsius.
   * @param  capacity Number of elements available in temperatures.
   * @param  count Number of temperatures written.
-  * @retval SUCCESS when a cached measurement is available.
+  * @retval SUCCESS when at least one sensor was converted and read.
   */
-ErrorStatus DS18B20_GetRecentTemperatures(int16_t* temperatures, uint8_t capacity, uint8_t* count);
+ErrorStatus DS18B20_MeasureTemperatures(int16_t*, uint8_t, uint8_t*);
 
 
 /* Private defines -----------------------------------------------------------*/

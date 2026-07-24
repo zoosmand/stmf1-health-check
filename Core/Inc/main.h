@@ -47,8 +47,7 @@ extern "C" {
 #include "bmx680.h"
 
 #include "heart_beat.h"
-#include "ds18b20.h"
-#include "bmx_service.h"
+#include "temperature_service.h"
 #include "tcp_service.h"
 
 #include "wizchip_port.h"

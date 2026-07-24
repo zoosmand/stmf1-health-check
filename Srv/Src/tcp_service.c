@@ -177,7 +177,11 @@ static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t le
     char response[TCP_RESPONSE_SIZE];
     size_t used = 0U;
 
-    if (DS18B20_GetRecentTemperatures(temperatures, TCP_MAX_TEMPERATURES, &count) != SUCCESS) {
+    if (TemperatureSensorService_GetRecentDs18b20(
+          temperatures,
+          TCP_MAX_TEMPERATURES,
+          &count
+        ) != SUCCESS) {
       (void) tcpCommandService_Send("ERR temperature_unavailable\r\n");
       return;
     }
