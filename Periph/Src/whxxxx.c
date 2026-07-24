@@ -8,6 +8,8 @@
 #include "whxxxx.h"
 #include "i2c.h"
 
+#if defined(USE_WH_DISPLAY)
+
 #define WHXXXX_BACKLIGHT       (1U << 3U)
 #define WHXXXX_ENABLE          (1U << 2U)
 #define WHXXXX_REGISTER_SELECT (1U << 0U)
@@ -222,3 +224,5 @@ static ErrorStatus whxxxx_Lock(void) {
 static void whxxxx_Unlock(void) {
   (void)xSemaphoreGive(displayMutex);
 }
+
+#endif /* USE_WH_DISPLAY */
