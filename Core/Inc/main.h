@@ -43,7 +43,7 @@ extern "C" {
 
 #include "heart_beat.h"
 #include "ds18b20.h"
-#include "eth_loopback.h"
+#include "tcp_service.h"
 
 #include "wizchip_port.h"
 
@@ -90,4 +90,3 @@ void _delay_ms(uint32_t);
 #endif
 
 #endif /* __MAIN_H */
-

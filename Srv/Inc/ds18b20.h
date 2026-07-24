@@ -32,6 +32,15 @@
  */
 void TemperatureMeasurmentService(void);
 
+/**
+  * @brief  Copies the most recent temperatures measured by the periodic service.
+  * @param  temperatures Output array in hundredths of a degree Celsius.
+  * @param  capacity Number of elements available in temperatures.
+  * @param  count Number of temperatures written.
+  * @retval SUCCESS when a cached measurement is available.
+  */
+ErrorStatus DS18B20_GetRecentTemperatures(int16_t* temperatures, uint8_t capacity, uint8_t* count);
+
 
 /* Private defines -----------------------------------------------------------*/
 #define AlarmSearch     0xec
