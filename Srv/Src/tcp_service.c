@@ -71,6 +71,7 @@ void TcpCommandService_Run(void) {
       if ((getSn_IR(TCP_COMMAND_SOCKET) & Sn_IR_CON) != 0U) {
         setSn_IR(TCP_COMMAND_SOCKET, Sn_IR_CON);
         commandLength = 0U;
+        printf("TCP connection\n");
       }
 
       tcpCommandService_Receive();
