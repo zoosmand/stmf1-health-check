@@ -29,7 +29,7 @@ ErrorStatus SPI_Init(SPI_TypeDef* SPIx) {
     MODIFY_REG(SPI1_Port->CRL,
       ((0xf << (SPI1_SCK_Pin * 4U)) | (0xf << (SPI1_MISO_Pin * 4U)) | (0xf << (SPI1_MOSI_Pin * 4U))), (
         ((GPIO_AF_PP | GPIO_IOS_50) << (SPI1_SCK_Pin * 4U))
-      | ((GPIO_AF_PP | GPIO_IOS_50) << (SPI1_MISO_Pin * 4U))
+      | (GPIO_IN_FL << (SPI1_MISO_Pin * 4U))
       | ((GPIO_AF_PP | GPIO_IOS_50) << (SPI1_MOSI_Pin * 4U))
     ));
     /* Enbale SPI master mode */
@@ -40,7 +40,7 @@ ErrorStatus SPI_Init(SPI_TypeDef* SPIx) {
     MODIFY_REG(SPI2_Port->CRH,
       ((0xf << ((SPI2_SCK_Pin - 8) * 4U)) | (0xf << ((SPI2_MISO_Pin - 8) * 4U)) | (0xf << ((SPI2_MOSI_Pin - 8) * 4U))), (
         ((GPIO_AF_PP | GPIO_IOS_50) << ((SPI2_SCK_Pin - 8) * 4U))
-      | ((GPIO_AF_PP | GPIO_IOS_50) << ((SPI2_MISO_Pin - 8) * 4U))
+      | (GPIO_IN_FL << ((SPI2_MISO_Pin - 8) * 4U))
       | ((GPIO_AF_PP | GPIO_IOS_50) << ((SPI2_MOSI_Pin - 8) * 4U))
     ));
     /* Enbale SPI master mode */
@@ -75,7 +75,7 @@ ErrorStatus SPI_AdjustInit(SPI_TypeDef* SPIx) {
   MODIFY_REG(SPIx->CR1, (SPI_CR1_BR_Msk | SPI_CR1_DFF_Msk), 0);
   PREG_SET(SPIx->CR2, SPI_CR2_SSOE_Pos);
 
-
+  return (SUCCESS);
 }
 
 

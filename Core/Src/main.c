@@ -31,18 +31,21 @@ __IO uint32_t _PREG_ = 0;
 int main(void) {
 
   /* Initialization of necessary peripherals */
-  if (!LED_Init(HEARTBEAT_PORT, HEARTBEAT_PIN)) FLAG_SET(_PREG_, _PR_HEART_BEAT_LED);
-  if (!OneWire_Init(OneWire_PORT, OneWire_PIN)) FLAG_SET(_PREG_, _PR_ONEWIRE_BUS);
-  if (!USART_Init(USART1)) FLAG_SET(_PREG_, _PR_USART1_BUS);
-  if (!SPI_Init(SPI1) && !(EthSPI_Init(ETH_CS_Port, ETH_CS_Pin)) && !(EthSPI_Init(ETH_RST_Port, ETH_RST_Pin))){
-
-    SPI_AdjustInit(SPI1);
+  if (LED_Init(HEARTBEAT_PORT, HEARTBEAT_PIN) != SUCCESS) FLAG_SET(_PREG_, _PR_HEART_BEAT_LED);
+  if (OneWire_Init(OneWire_PORT, OneWire_PIN) != SUCCESS) FLAG_SET(_PREG_, _PR_ONEWIRE_BUS);
+  if (USART_Init(USART1) != SUCCESS) FLAG_SET(_PREG_, _PR_USART1_BUS);
+  if ((SPI_Init(SPI1) != SUCCESS)
+      || (EthSPI_Init(ETH_CS_Port, ETH_CS_Pin) != SUCCESS)
+      || (EthSPI_Init(ETH_RST_Port, ETH_RST_Pin) != SUCCESS)
+      || (SPI_AdjustInit(SPI1) != SUCCESS)) {
     FLAG_SET(_PREG_, _PR_SPI1_BUS);
   }
 
-  printf("Peripherals rediness list: 0x%08lx\n", _PREG_);
-  
-  W5500_Init();
+  if (!FLAG_CHECK(_PREG_, _PR_SPI1_BUS) && (W5500_Init() != 0)) {
+    FLAG_SET(_PREG_, _PR_SPI1_BUS);
+  }
+
+  printf("Peripherals readiness list: 0x%08lx\n", _PREG_);
   
   /* Run the Heartbeat Service */
   HeartBeatService();
@@ -52,7 +55,9 @@ int main(void) {
   TemperatureMeasurmentService();
 
   /* Ethernet Loopback */
-  EthLoopbackService();
+  if (!FLAG_CHECK(_PREG_, _PR_SPI1_BUS)) {
+    EthLoopbackService();
+  }
 
 
   /* Start the scheduler. */
@@ -101,6 +106,7 @@ int main(void) {
   * @retval None
   */
 void SystemInit (void) {
+  uint32_t timeout;
 
   #if (PREFETCH_ENABLE != 0)
     PREG_SET(FLASH->ACR, FLASH_ACR_PRFTBE_Pos);
@@ -130,11 +136,15 @@ void SystemInit (void) {
 
   /* HSE enable and wait until it runs */
   PREG_SET(RCC->CR, RCC_CR_HSEON_Pos);
-  while (!(PREG_CHECK(RCC->CR, RCC_CR_HSERDY_Pos)));
+  timeout = 72000000U;
+  while (!(PREG_CHECK(RCC->CR, RCC_CR_HSERDY_Pos)) && (--timeout != 0U));
+  if (timeout == 0U) Error_Handler();
 
   /* LSI enable and wait until it runs */
   PREG_SET(RCC->CSR, RCC_CSR_LSION_Pos);
-  while (!(PREG_CHECK(RCC->CR, RCC_CSR_LSIRDY_Pos)));
+  timeout = 72000000U;
+  while (!(PREG_CHECK(RCC->CSR, RCC_CSR_LSIRDY_Pos)) && (--timeout != 0U));
+  if (timeout == 0U) Error_Handler();
 
   /* Enable backup registers access */
   PREG_SET(PWR->CR, PWR_CR_DBP_Pos);
@@ -145,7 +155,9 @@ void SystemInit (void) {
 
   /* LSE enable and wait until it runs */
   PREG_SET(RCC->BDCR, RCC_BDCR_LSEON_Pos);
-  while (!(PREG_CHECK(RCC->CR, RCC_BDCR_LSERDY_Pos)));
+  timeout = 360000000U;
+  while (!(PREG_CHECK(RCC->BDCR, RCC_BDCR_LSERDY_Pos)) && (--timeout != 0U));
+  if (timeout == 0U) Error_Handler();
 
   /* RTC Source is LSE */
   MODIFY_REG(RCC->BDCR, RCC_BDCR_RTCSEL, RCC_BDCR_RTCSEL_0);
@@ -159,7 +171,9 @@ void SystemInit (void) {
 
   /* PLL enable and wait until it runs */
   PREG_SET(RCC->CR, RCC_CR_PLLON_Pos);
-  while (!(PREG_CHECK(RCC->CR, RCC_CR_PLLRDY_Pos)));
+  timeout = 72000000U;
+  while (!(PREG_CHECK(RCC->CR, RCC_CR_PLLRDY_Pos)) && (--timeout != 0U));
+  if (timeout == 0U) Error_Handler();
 
   /* AHB clock isn't divided */
   /* APB1 clock divided by 2 */
@@ -168,7 +182,9 @@ void SystemInit (void) {
 
   /* set PLL as sysclock source and wait until it runs */
   MODIFY_REG(RCC->CFGR, RCC_CFGR_SW, RCC_CFGR_SW_PLL);
-  while (READ_BIT(RCC->CFGR, RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
+  timeout = 72000000U;
+  while ((READ_BIT(RCC->CFGR, RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) && (--timeout != 0U));
+  if (timeout == 0U) Error_Handler();
 
 
 
@@ -213,4 +229,3 @@ void SystemInit (void) {
 
 
 }
-

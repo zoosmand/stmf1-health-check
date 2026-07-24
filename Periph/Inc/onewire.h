@@ -51,6 +51,12 @@ ErrorStatus OneWire_Search(void);
 
 void OneWireBusConfigurationInit(void);
 
+BaseType_t OneWire_Lock(TickType_t);
+
+void OneWire_Unlock(void);
+
+uint8_t OneWire_GetDeviceCount(void);
+
 /**
  * @brief   Defines parasitic powered devices on OnWire bus.
  * @param   addr pointer to OneWire device address

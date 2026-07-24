@@ -12,6 +12,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "onewire.h"
+#include <string.h>
 
 /* Global variables ----------------------------------------------------------*/
 
@@ -32,6 +33,9 @@ static void oneWireBusConfigurationTask(void* parameters);
 #define NUM_DEVICES_ON_BUS 16
 static uint8_t lastfork;
 static OneWireDevice_t oneWireDevices[NUM_DEVICES_ON_BUS];
+static uint8_t oneWireDeviceCount;
+static StaticSemaphore_t oneWireMutexBuffer;
+static SemaphoreHandle_t oneWireMutex;
 
 
 
@@ -41,7 +45,8 @@ static OneWireDevice_t oneWireDevices[NUM_DEVICES_ON_BUS];
 
 // -------------------------------------------------------------
 void OneWireBusConfigurationInit(void) {
-  
+  oneWireMutex = xSemaphoreCreateMutexStatic(&oneWireMutexBuffer);
+
   static StaticTask_t oneWireBusConfigurationTaskTCB;
   static StackType_t oneWireBusConfigurationTaskStack[configMINIMAL_STACK_SIZE];
   
@@ -65,10 +70,30 @@ static void oneWireBusConfigurationTask(void* parameters) {
   (void) parameters;
   
   while(1) {
-    if (OneWire_Search()) {
-      vTaskDelete(NULL);
+    if (OneWire_Lock(portMAX_DELAY) == pdTRUE) {
+      (void) OneWire_Search();
+      OneWire_Unlock();
     }
     vTaskDelay(60000); // Research devices in the bus minutetly
+  }
+}
+
+
+
+
+// -------------------------------------------------------------
+BaseType_t OneWire_Lock(TickType_t timeout) {
+  if (oneWireMutex == NULL) return (pdFALSE);
+  return xSemaphoreTake(oneWireMutex, timeout);
+}
+
+
+
+
+// -------------------------------------------------------------
+void OneWire_Unlock(void) {
+  if (oneWireMutex != NULL) {
+    (void) xSemaphoreGive(oneWireMutex);
   }
 }
 
@@ -90,7 +115,6 @@ __STATIC_INLINE uint32_t irq_lock(void) {
 // -------------------------------------------------------------
 __STATIC_INLINE void irq_unlock(uint32_t p) {
   __set_PRIMASK(p);
-  __enable_irq();
 }
 
 
@@ -278,12 +302,15 @@ __STATIC_INLINE ErrorStatus OneWire_Enumerate(uint8_t* addr) {
 
 // -------------------------------------------------------------
 ErrorStatus OneWire_Search(void) {
+  oneWireDeviceCount = 0;
+  memset(oneWireDevices, 0, sizeof(oneWireDevices));
   if (OneWire_Reset()) return (ERROR);
   lastfork = 65;
   for (uint8_t i = 0; i < NUM_DEVICES_ON_BUS; i++) {
     if (OneWire_Enumerate(oneWireDevices[i].addr)) break;
+    oneWireDeviceCount++;
   }
-  return (SUCCESS);
+  return (oneWireDeviceCount > 0U) ? SUCCESS : ERROR;
 }
 
 
@@ -318,6 +345,13 @@ OneWireDevice_t* Get_OwDevices(void) {
   return oneWireDevices;
 }
 
+
+
+
+// -------------------------------------------------------------
+uint8_t OneWire_GetDeviceCount(void) {
+  return oneWireDeviceCount;
+}
 
 
 
