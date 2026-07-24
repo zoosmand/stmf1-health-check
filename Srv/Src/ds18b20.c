@@ -162,9 +162,9 @@ static ErrorStatus dS18B20_ConvertTemperature(uint8_t* addr) {
     dS18B20_Command(ConvertT);
     
     if (pps) {
-      OneWire_Low;
+      OneWire_StrongPullupEnable();
       vTaskDelay(pdMS_TO_TICKS(DS18B20_CONVERSION_TIMEOUT_MS));
-      OneWire_Low;
+      OneWire_StrongPullupDisable();
     } else {
       if (dS18B20_WaitStatus(DS18B20_CONVERSION_TIMEOUT_MS) != SUCCESS) return (ERROR);
     }

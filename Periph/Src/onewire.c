@@ -100,6 +100,36 @@ void OneWire_Unlock(void) {
 
 
 
+// -------------------------------------------------------------
+void OneWire_StrongPullupEnable(void) {
+  uint32_t shift = (OneWire_PIN - 8U) * 4U;
+
+  PIN_H(OneWire_PORT, OneWire_PIN);
+  MODIFY_REG(
+    OneWire_PORT->CRH,
+    (0xfU << shift),
+    ((GPIO_IOS_10 | GPIO_GPO_PP) << shift)
+  );
+}
+
+
+
+
+// -------------------------------------------------------------
+void OneWire_StrongPullupDisable(void) {
+  uint32_t shift = (OneWire_PIN - 8U) * 4U;
+
+  PIN_H(OneWire_PORT, OneWire_PIN);
+  MODIFY_REG(
+    OneWire_PORT->CRH,
+    (0xfU << shift),
+    ((GPIO_IOS_10 | GPIO_GPO_OD) << shift)
+  );
+}
+
+
+
+
 /*******************************************************************************/
 
 // -------------------------------------------------------------
@@ -352,7 +382,6 @@ OneWireDevice_t* Get_OwDevices(void) {
 uint8_t OneWire_GetDeviceCount(void) {
   return oneWireDeviceCount;
 }
-
 
 
 

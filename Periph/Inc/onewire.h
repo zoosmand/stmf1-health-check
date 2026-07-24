@@ -57,6 +57,10 @@ void OneWire_Unlock(void);
 
 uint8_t OneWire_GetDeviceCount(void);
 
+void OneWire_StrongPullupEnable(void);
+
+void OneWire_StrongPullupDisable(void);
+
 /**
  * @brief   Defines parasitic powered devices on OnWire bus.
  * @param   addr pointer to OneWire device address
