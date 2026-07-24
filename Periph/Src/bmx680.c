@@ -43,9 +43,9 @@ ErrorStatus BMx680_Init(BMxX80_TypeDef* dev) {
   calib->par_p5 = (int16_t)((dev->RawBufPtr[13] << 8) | dev->RawBufPtr[12]);
   calib->par_p6 = (int8_t)dev->RawBufPtr[15];
   calib->par_p7 = (int8_t)dev->RawBufPtr[14];
-  calib->par_p8 = (int16_t)((dev->RawBufPtr[17] << 8) | dev->RawBufPtr[16]);
-  calib->par_p9 = (int16_t)((dev->RawBufPtr[19] << 8) | dev->RawBufPtr[18]);
-  calib->par_p10 = dev->RawBufPtr[20];
+  calib->par_p8 = (int16_t)((dev->RawBufPtr[19] << 8) | dev->RawBufPtr[18]);
+  calib->par_p9 = (int16_t)((dev->RawBufPtr[21] << 8) | dev->RawBufPtr[20]);
+  calib->par_p10 = dev->RawBufPtr[22];
   if (calib->par_p1 == 0U) goto done;
 
   if (bmx680_Receive(dev, BMX680_CALIB2, 16U) != SUCCESS) goto done;
