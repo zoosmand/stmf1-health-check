@@ -43,9 +43,11 @@ extern "C" {
 #include "spi.h"
 #include "i2c.h"
 #include "whxxxx.h"
+#include "bmx280.h"
+#include "bmx680.h"
 
 #include "heart_beat.h"
-#include "ds18b20.h"
+#include "temperature_service.h"
 #include "tcp_service.h"
 
 #include "wizchip_port.h"
@@ -63,6 +65,9 @@ extern __IO uint32_t _PREG_;
 #define _PR_ONEWIRE_BUS       2
 #define _PR_SPI1_BUS          3
 #define _PR_I2C1_BUS          4
+#define _PR_WH_DISPLAY        5
+#define _PR_BMX280            6
+#define _PR_BMX680            7
 
 /* Exported functions prototypes ---------------------------------------------*/
 

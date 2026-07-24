@@ -40,12 +40,15 @@ int main(void) {
       || (SPI_AdjustInit(SPI1) != SUCCESS)) {
     FLAG_SET(_PREG_, _PR_SPI1_BUS);
   }
-  #if defined(USE_WH_DISPLAY)
-    if ((I2C_Init(I2C1) != SUCCESS)
-        || (WHxxxx_Init(I2C1, WHxxxx_I2C_ADDR) != SUCCESS)) {
-      FLAG_SET(_PREG_, _PR_I2C1_BUS);
-    }
-  #endif
+  if (I2C_Init(I2C1) != SUCCESS) {
+    FLAG_SET(_PREG_, _PR_I2C1_BUS);
+  } else {
+    #if defined(USE_WH_DISPLAY)
+      if (WHxxxx_Init(I2C1, WHxxxx_I2C_ADDR) != SUCCESS) {
+        FLAG_SET(_PREG_, _PR_WH_DISPLAY);
+      }
+    #endif
+  }
 
   if (!FLAG_CHECK(_PREG_, _PR_SPI1_BUS) && (W5500_Init() != 0)) {
     FLAG_SET(_PREG_, _PR_SPI1_BUS);
@@ -56,9 +59,9 @@ int main(void) {
   /* Run the Heartbeat Service */
   HeartBeatService();
 
-  /* Run the Temperature Measurment Service */
+  /* Run the Temperature Measurement Service */
   OneWireBusConfigurationInit();
-  TemperatureMeasurmentService();
+  TemperatureSensorService_Init();
 
   /* TCP command service */
   if (!FLAG_CHECK(_PREG_, _PR_SPI1_BUS)) {
@@ -208,9 +211,7 @@ void SystemInit (void) {
   ));
 
   /* APB1 peripherals */
-  #if defined(USE_WH_DISPLAY)
-    SET_BIT(RCC->APB1ENR, RCC_APB1ENR_I2C1EN);
-  #endif
+  SET_BIT(RCC->APB1ENR, RCC_APB1ENR_I2C1EN);
 
   /* APB2 peripherals */
   SET_BIT(RCC->APB2ENR, (
