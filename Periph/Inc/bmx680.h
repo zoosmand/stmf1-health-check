@@ -20,11 +20,11 @@
 #define BMX680_CTRL_HUM              0x72U
 #define BMX680_CTRL_MEAS             0x74U
 #define BMX680_STATUS                0x1DU
-#define BMX680_TEMP_MSB              0x22U
+#define BMX680_DATA                  0x1FU
 
 #define BMX680_MEASURING             (1U << 5U)
-#define BMX680_HUMIDITY_OVS_0        0x00U
-#define BMX680_PRESSURE_OVS_0        (0x00U << 2U)
+#define BMX680_HUMIDITY_OVS_4        0x03U
+#define BMX680_PRESSURE_OVS_4        (0x03U << 2U)
 #define BMX680_TEMPERATURE_OVS_8     (0x04U << 5U)
 #define BMX680_FORCED_MODE           0x01U
 

@@ -125,9 +125,12 @@ ErrorStatus BMx280_Measurement(BMxX80_TypeDef* dev) {
 
   dev->Results.temperature = bmx280_CompensateTemperature(dev);
   dev->Results.pressure = bmx280_CompensatePressure(dev);
-  dev->Results.humidity = (dev->DevID == BME280_ID)
-    ? bmx280_CompensateHumidity(dev)
-    : 0U;
+  if (dev->DevID == BME280_ID) {
+    uint32_t humidityQ22_10 = bmx280_CompensateHumidity(dev);
+    dev->Results.humidity = ((humidityQ22_10 * 1000U) + 512U) / 1024U;
+  } else {
+    dev->Results.humidity = 0U;
+  }
 
   status = SUCCESS;
 

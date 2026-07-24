@@ -16,6 +16,7 @@
 typedef struct {
   uint32_t pressure;
   int32_t temperature;
+  /* Relative humidity in thousandths of percent (100000 = 100.000 %RH). */
   uint32_t humidity;
   uint16_t gas_resistance;
   uint8_t gas_range;
@@ -24,29 +25,29 @@ typedef struct {
 } BMxX80_results_t;
 
 typedef struct {
-  int16_t par_t1;
+  uint16_t par_t1;
   int16_t par_t2;
-  int16_t par_t3;
-  int16_t par_p1;
+  int8_t par_t3;
+  uint16_t par_p1;
   int16_t par_p2;
-  int16_t par_p3;
+  int8_t par_p3;
   int16_t par_p4;
   int16_t par_p5;
-  int16_t par_p6;
-  int16_t par_p7;
+  int8_t par_p6;
+  int8_t par_p7;
   int16_t par_p8;
   int16_t par_p9;
-  int16_t par_p10;
-  int16_t par_h1;
-  int16_t par_h2;
-  int16_t par_h3;
-  int16_t par_h4;
-  int16_t par_h5;
-  int16_t par_h6;
-  int16_t par_h7;
-  int16_t par_g1;
+  uint8_t par_p10;
+  uint16_t par_h1;
+  uint16_t par_h2;
+  int8_t par_h3;
+  int8_t par_h4;
+  int8_t par_h5;
+  uint8_t par_h6;
+  int8_t par_h7;
+  int8_t par_g1;
   int16_t par_g2;
-  int16_t par_g3;
+  int8_t par_g3;
 } BMx680_calib_t;
 
 typedef struct {
