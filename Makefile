@@ -48,8 +48,7 @@ FreeRTOS-Kernel/portable/MemMang/heap_4.c \
 $(wildcard Ethernet/*.c) \
 $(wildcard Ethernet/W5500/*.c) \
 $(wildcard Ethernet/DHCP/*.c) \
-$(wildcard Ethernet/DNS/*.c) \
-$(wildcard Ethernet/loopback/*.c)
+$(wildcard Ethernet/DNS/*.c)
 
 # ASM sources
 ASM_SOURCES =  \

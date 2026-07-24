@@ -54,9 +54,9 @@ int main(void) {
   OneWireBusConfigurationInit();
   TemperatureMeasurmentService();
 
-  /* Ethernet Loopback */
+  /* TCP command service */
   if (!FLAG_CHECK(_PREG_, _PR_SPI1_BUS)) {
-    EthLoopbackService();
+    TcpCommandService_Init();
   }
 
 
