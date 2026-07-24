@@ -35,11 +35,14 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 #include "common.h"
 #include "stm32f10x_it.h"
+#include "project_config.h"
 
 #include "gpio.h"
 #include "usart.h"
 #include "onewire.h"
 #include "spi.h"
+#include "i2c.h"
+#include "whxxxx.h"
 
 #include "heart_beat.h"
 #include "ds18b20.h"
@@ -50,11 +53,8 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
-/* Exported defines -----------------------------------------------------------*/
-#define putc_dspl(ch) DSPL_OUT(ch);
-
 /* Exported variables --------------------------------------------------------*/
-// __IO uint32_t _PREG_;
+extern __IO uint32_t _PREG_;
 
 /* Private defines -----------------------------------------------------------*/
 /* Peripherals readiness flags */
@@ -62,6 +62,7 @@ extern "C" {
 #define _PR_USART1_BUS        1
 #define _PR_ONEWIRE_BUS       2
 #define _PR_SPI1_BUS          3
+#define _PR_I2C1_BUS          4
 
 /* Exported functions prototypes ---------------------------------------------*/
 

@@ -147,7 +147,7 @@ ASFLAGS += $(DEBUGFLAGS)
 endif
 
 ifeq ($(OUTPUT), 1)
-OUTPUTFLAGS = -DDSPL_OUT=putc_dspl_wh2004
+OUTPUTFLAGS = -DUSE_WH_DISPLAY
 ifeq ($(SYS), Darwin)
 OUTPUTFLAGS += -DITM_OUT=0 
 else ifeq ($(SYS), Linux)
