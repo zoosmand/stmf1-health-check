@@ -71,7 +71,8 @@ __STATIC_INLINE void _putc(uint8_t ch) {
   #endif
 
   #if defined(USE_WH_DISPLAY)
-    if (!FLAG_CHECK(_PREG_, _PR_I2C1_BUS)) {
+    if (!FLAG_CHECK(_PREG_, _PR_I2C1_BUS)
+        && !FLAG_CHECK(_PREG_, _PR_WH_DISPLAY)) {
       DSPL_OUT(ch);
     }
   #endif

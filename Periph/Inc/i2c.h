@@ -21,6 +21,7 @@ extern "C" {
 
 ErrorStatus I2C_Init(I2C_TypeDef*);
 ErrorStatus I2C_Master_Send(I2C_TypeDef*, uint8_t, const uint8_t*, uint16_t);
+ErrorStatus I2C_Master_ReadRegister(I2C_TypeDef*, uint8_t, uint8_t, uint8_t*, uint16_t);
 
 #ifdef __cplusplus
 }
