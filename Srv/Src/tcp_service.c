@@ -229,6 +229,7 @@ static ErrorStatus tcpCommandService_Send(const char* response) {
     vTaskDelay(1U);
   }
 
+  setSn_IR(TCP_COMMAND_SOCKET, Sn_IR_SENDOK);
   (void) disconnect(TCP_COMMAND_SOCKET);
   commandLength = 0U;
   return (SUCCESS);
