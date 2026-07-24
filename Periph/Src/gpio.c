@@ -31,6 +31,7 @@ ErrorStatus LED_Init(GPIO_TypeDef *port, uint16_t pin) {
         shift = (pin - 8) * 4;
         MODIFY_REG(port->CRH, (0xf << shift), (GPIO_MODE_OUTPUT_PP_2MHZ << shift));
     }
+    PIN_H(port, pin);
 
     return (SUCCESS);
 }

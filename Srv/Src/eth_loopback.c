@@ -73,6 +73,7 @@ static void ethLoopback(void) {
   loopback_tcps(0, loopback_buf, 5300);
   loopback_tcps(1, loopback_buf2, 5301);
   SPI_Disable(SPI1);
+  vTaskDelay(1);
 }
 
 
