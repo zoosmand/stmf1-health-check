@@ -97,17 +97,3 @@ ErrorStatus SPI_Write_8b(SPI_TypeDef*, uint8_t*, uint16_t);
 #endif
 
 #endif /* __SPI_INIT_H */
-
-
-// #define HEARTBEAT_LED_Pin GPIO_PIN_13
-// #define HEARTBEAT_LED_GPIO_Port GPIOC
-// #define ETH_IN_Pin GPIO_PIN_2
-// #define ETH_IN_GPIO_Port GPIOA
-// #define ETH_RESET_Pin GPIO_PIN_3
-// #define ETH_RESET_GPIO_Port GPIOA
-// #define ETH_CS_Pin GPIO_PIN_4
-// #define ETH_CS_GPIO_Port GPIOA
-
-// /* USER CODE BEGIN Private defines */
-// #define HEARTBEAT_LED_Pin_Pos 13U
-// #define USART_OUT USART1
