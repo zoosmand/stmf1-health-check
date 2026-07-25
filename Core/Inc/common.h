@@ -129,7 +129,8 @@
 #define IWDG_KEY_RELOAD             0x0000aaaa
 #define IWDG_KEY_ENABLE             0x0000cccc
 #define IWDG_KEY_ACCESS             0x00005555
-#define IWDG_RELOAD_COUNTER         0x00000fff /* 4095 */
+#define IWDG_PRESCALER_DIV64        0x00000004
+#define IWDG_RELOAD_COUNTER         0x000005db /* 1499 */
 
 
 

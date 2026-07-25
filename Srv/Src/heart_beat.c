@@ -40,6 +40,7 @@ void HeartBeatService(void) {
   static StaticTask_t heartBeatTaskTCB;
   static StackType_t heartBeatTaskStack[configMINIMAL_STACK_SIZE];
 
+  HealthService_Register(HEALTH_COMPONENT_HEART_BEAT);
   (void) xTaskCreateStatic(
                             heartBeatTask,
                             "Heart Beat",
@@ -59,6 +60,7 @@ static void heartBeatTask(void* parameters) {
 
   while(1) {
       heartBeat_Blink(HEARTBEAT_PORT, HEARTBEAT_PIN, vTaskDelay, 1200);
+      HealthService_Report(HEALTH_COMPONENT_HEART_BEAT);
   }
 }
 
@@ -80,5 +82,4 @@ static void heartBeat_Blink(GPIO_TypeDef* port, uint16_t pin, void (*callbackDel
   PIN_H(port, pin);
   callbackDelay(delay - fraction);
 }
-
 

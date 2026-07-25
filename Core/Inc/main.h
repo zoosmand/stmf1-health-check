@@ -48,6 +48,7 @@ extern "C" {
 #include "bmx680.h"
 
 #include "heart_beat.h"
+#include "health_service.h"
 #include "temperature_service.h"
 #include "tcp_service.h"
 

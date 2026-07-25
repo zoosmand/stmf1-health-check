@@ -79,6 +79,7 @@ void TemperatureSensorService_Init(void) {
 
   static StaticTask_t taskControlBlock;
   static StackType_t taskStack[configMINIMAL_STACK_SIZE * 4U];
+  HealthService_Register(HEALTH_COMPONENT_TEMPERATURE);
   (void)xTaskCreateStatic(
     temperatureSensorService_Task,
     "Temperature",
@@ -162,6 +163,7 @@ static void temperatureSensorService_Task(void* parameters) {
       bmx280Status,
       bmx680Status
     );
+    HealthService_Report(HEALTH_COMPONENT_TEMPERATURE);
 
     memoryReportCounter++;
     if (memoryReportCounter >= MEMORY_REPORT_CYCLES) {
