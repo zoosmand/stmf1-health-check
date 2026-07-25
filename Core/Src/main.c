@@ -47,6 +47,17 @@ int main(void) {
       if (WHxxxx_Init(I2C1, WHxxxx_I2C_ADDR) != SUCCESS) {
         FLAG_SET(_PREG_, _PR_WH_DISPLAY);
       }
+    #elif defined(USE_SSD_DISPLAY)
+      static SSD13xx_TypeDef ssdDisplay;
+      if (SSD13xx_Init(
+            &ssdDisplay,
+            I2C1,
+            SSD13XX_I2C_ADDR,
+            SSD_DSPL_MODEL,
+            SSD_DSPL_FONT
+          ) != SUCCESS) {
+        FLAG_SET(_PREG_, _PR_SSD_DISPLAY);
+      }
     #endif
   }
 

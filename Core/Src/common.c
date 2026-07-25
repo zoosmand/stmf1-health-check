@@ -70,9 +70,16 @@ __STATIC_INLINE void _putc(uint8_t ch) {
     ITM_SendCharChannel(ch, ITM_OUT);
   #endif
 
-  #if defined(USE_WH_DISPLAY)
+  #if defined(USE_WH_DISPLAY) || defined(USE_SSD_DISPLAY)
     if (!FLAG_CHECK(_PREG_, _PR_I2C1_BUS)
-        && !FLAG_CHECK(_PREG_, _PR_WH_DISPLAY)) {
+        && !FLAG_CHECK(
+          _PREG_,
+          #if defined(USE_WH_DISPLAY)
+            _PR_WH_DISPLAY
+          #else
+            _PR_SSD_DISPLAY
+          #endif
+        )) {
       DSPL_OUT(ch);
     }
   #endif
