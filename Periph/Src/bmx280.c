@@ -34,6 +34,13 @@ ErrorStatus BMx280_Init(BMxX80_TypeDef* dev) {
   if (bmx280_Receive(dev, BMX280_DEV_ID, 1U) != SUCCESS) goto done;
   dev->DevID = dev->RawBufPtr[0];
   if ((dev->DevID != BMP280_ID) && (dev->DevID != BME280_ID)) goto done;
+  if (bmx280_Receive(dev, BMXX80_UNIQUE_ID_REG, 4U) != SUCCESS) goto done;
+  dev->UniqueID = (
+      ((((uint32_t)dev->RawBufPtr[3]
+        + ((uint32_t)dev->RawBufPtr[2] << 8)) & 0x7FFFU) << 16)
+    | ((uint32_t)dev->RawBufPtr[1] << 8)
+    | (uint32_t)dev->RawBufPtr[0]
+  );
 
   if (bmx280_Send(dev, BMX280_RESET, BMX280_RESET_VALUE) != SUCCESS) goto done;
   if (bmx280_WaitNvmCopy(dev) != SUCCESS) goto done;

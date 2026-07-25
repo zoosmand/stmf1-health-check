@@ -31,6 +31,13 @@ ErrorStatus BMx680_Init(BMxX80_TypeDef* dev) {
   if (bmx680_Receive(dev, BMX680_DEV_ID, 1U) != SUCCESS) goto done;
   dev->DevID = dev->RawBufPtr[0];
   if (dev->DevID != BME680_ID) goto done;
+  if (bmx680_Receive(dev, BMXX80_UNIQUE_ID_REG, 4U) != SUCCESS) goto done;
+  dev->UniqueID = (
+      ((((uint32_t)dev->RawBufPtr[3]
+        + ((uint32_t)dev->RawBufPtr[2] << 8)) & 0x7FFFU) << 16)
+    | ((uint32_t)dev->RawBufPtr[1] << 8)
+    | (uint32_t)dev->RawBufPtr[0]
+  );
 
   BMx680_calib_t* calib = (BMx680_calib_t*)dev->CalibPtr;
   if (bmx680_Receive(dev, BMX680_CALIB1, 24U) != SUCCESS) goto done;

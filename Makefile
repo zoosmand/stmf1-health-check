@@ -27,7 +27,7 @@ ARCH := $(shell uname -m)
 SYS := $(shell uname -s)
 # output
 OUTPUT = 1
-DISPLAY = WH
+DISPLAY = SSD
 
 #######################################
 # paths
