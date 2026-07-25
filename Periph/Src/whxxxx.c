@@ -15,11 +15,13 @@
 #define WHXXXX_REGISTER_SELECT (1U << 0U)
 
 #if (WH_DSPL_MODEL == 1602)
-#define WHXXXX_COLUMNS 16U
-#define WHXXXX_ROWS    2U
+#define WHXXXX_COLUMNS           16U
+#define WHXXXX_ROWS              2U
+#define WHXXXX_ONE_LINE_LENGTH   16U
 #elif (WH_DSPL_MODEL == 2004)
-#define WHXXXX_COLUMNS 20U
-#define WHXXXX_ROWS    4U
+#define WHXXXX_COLUMNS           20U
+#define WHXXXX_ROWS              4U
+#define WHXXXX_ONE_LINE_LENGTH   40U
 #else
 #error "Unsupported WHxxxx display model"
 #endif
@@ -37,13 +39,21 @@ static uint8_t displayAddress;
 static uint8_t displayRow;
 static uint8_t displayColumn;
 static FunctionalState displayReady;
+static FunctionalState displayNewLinePending;
+#if (WH_DSPL_LINE_MODE == 2)
+static uint8_t displayLines[WHXXXX_ROWS][WHXXXX_COLUMNS];
+static FunctionalState displayRepaintPending;
+#endif
 static SemaphoreHandle_t displayMutex;
 static StaticSemaphore_t displayMutexBuffer;
 
 static ErrorStatus whxxxx_WriteNibble(uint8_t, uint8_t);
 static ErrorStatus whxxxx_WriteByte(uint8_t, uint8_t);
 static ErrorStatus whxxxx_Command(uint8_t);
+#if (WH_DSPL_LINE_MODE == 2)
 static ErrorStatus whxxxx_SetCursor(uint8_t, uint8_t);
+static ErrorStatus whxxxx_StartPrintfLine(void);
+#endif
 static ErrorStatus whxxxx_Lock(void);
 static void whxxxx_Unlock(void);
 
@@ -57,6 +67,16 @@ ErrorStatus WHxxxx_Init(I2C_TypeDef* i2c, uint8_t address) {
   displayAddress = address;
   displayRow = 0U;
   displayColumn = 0U;
+  displayNewLinePending = DISABLE;
+#if (WH_DSPL_LINE_MODE == 2)
+  for (uint8_t row = 0U; row < WHXXXX_ROWS; row++) {
+    for (uint8_t column = 0U; column < WHXXXX_COLUMNS; column++) {
+      displayLines[row][column] = ' ';
+    }
+  }
+  displayNewLinePending = ENABLE;
+  displayRepaintPending = DISABLE;
+#endif
   displayMutex = xSemaphoreCreateMutexStatic(&displayMutexBuffer);
   if (displayMutex == NULL) return (ERROR);
 
@@ -92,6 +112,16 @@ ErrorStatus WHxxxx_Clear(void) {
     _delay_us(1640U);
     displayRow = 0U;
     displayColumn = 0U;
+    displayNewLinePending = DISABLE;
+#if (WH_DSPL_LINE_MODE == 2)
+    for (uint8_t row = 0U; row < WHXXXX_ROWS; row++) {
+      for (uint8_t column = 0U; column < WHXXXX_COLUMNS; column++) {
+        displayLines[row][column] = ' ';
+      }
+    }
+    displayNewLinePending = ENABLE;
+    displayRepaintPending = DISABLE;
+#endif
   }
   whxxxx_Unlock();
   return (status);
@@ -127,33 +157,42 @@ int putc_dspl_wh(char character) {
   if (whxxxx_Lock() != SUCCESS) return (ERROR);
 
   ErrorStatus status = SUCCESS;
+#if (WH_DSPL_LINE_MODE == 1)
   if (character == '\n') {
-    displayRow++;
-    displayColumn = 0U;
-    if (displayRow >= WHXXXX_ROWS) {
+    displayNewLinePending = ENABLE;
+  } else if (character != '\r') {
+    if (displayNewLinePending == ENABLE) {
       status = whxxxx_Command(0x01U);
       _delay_us(1640U);
       displayRow = 0U;
-    } else {
-      status = whxxxx_SetCursor(displayRow, displayColumn);
-    }
-  } else if (character != '\r') {
-    if (displayColumn >= WHXXXX_COLUMNS) {
-      displayRow++;
       displayColumn = 0U;
-      if (displayRow >= WHXXXX_ROWS) {
-        status = whxxxx_Command(0x01U);
-        _delay_us(1640U);
-        displayRow = 0U;
-      } else {
-        status = whxxxx_SetCursor(displayRow, displayColumn);
+      displayNewLinePending = DISABLE;
+    }
+    if ((status == SUCCESS)
+        && (displayColumn < WHXXXX_ONE_LINE_LENGTH)) {
+      status = whxxxx_WriteByte((uint8_t)character, WHXXXX_REGISTER_SELECT);
+      if (status == SUCCESS) {
+        displayColumn++;
       }
     }
-    if (status == SUCCESS) {
+  }
+#else
+  if (character == '\n') {
+    displayNewLinePending = ENABLE;
+  } else if (character != '\r') {
+    if (displayNewLinePending == ENABLE) {
+      status = whxxxx_StartPrintfLine();
+    }
+    if ((status == SUCCESS)
+        && (displayColumn < WHXXXX_COLUMNS)) {
       status = whxxxx_WriteByte((uint8_t)character, WHXXXX_REGISTER_SELECT);
-      displayColumn++;
+      if (status == SUCCESS) {
+        displayLines[WHXXXX_ROWS - 1U][displayColumn] = (uint8_t)character;
+        displayColumn++;
+      }
     }
   }
+#endif
 
   whxxxx_Unlock();
   return (status == SUCCESS) ? (uint8_t)character : ERROR;
@@ -200,6 +239,7 @@ static ErrorStatus whxxxx_Command(uint8_t command) {
 
 
 // -------------------------------------------------------------
+#if (WH_DSPL_LINE_MODE == 2)
 static ErrorStatus whxxxx_SetCursor(uint8_t row, uint8_t column) {
 #if (WH_DSPL_MODEL == 1602)
   static const uint8_t rowOffsets[WHXXXX_ROWS] = {0x00U, 0x40U};
@@ -208,6 +248,51 @@ static ErrorStatus whxxxx_SetCursor(uint8_t row, uint8_t column) {
 #endif
   return whxxxx_Command(0x80U | (rowOffsets[row] + column));
 }
+
+
+
+
+// -------------------------------------------------------------
+static ErrorStatus whxxxx_StartPrintfLine(void) {
+  if (displayRepaintPending == DISABLE) {
+    for (uint8_t row = 0U; row < (WHXXXX_ROWS - 1U); row++) {
+      for (uint8_t column = 0U; column < WHXXXX_COLUMNS; column++) {
+        displayLines[row][column] = displayLines[row + 1U][column];
+      }
+    }
+    for (uint8_t column = 0U; column < WHXXXX_COLUMNS; column++) {
+      displayLines[WHXXXX_ROWS - 1U][column] = ' ';
+    }
+    displayRepaintPending = ENABLE;
+  }
+
+  ErrorStatus status = SUCCESS;
+  for (uint8_t row = 0U;
+       (row < WHXXXX_ROWS) && (status == SUCCESS);
+       row++) {
+    status = whxxxx_SetCursor(row, 0U);
+    for (uint8_t column = 0U;
+         (column < WHXXXX_COLUMNS) && (status == SUCCESS);
+         column++) {
+      status = whxxxx_WriteByte(
+        displayLines[row][column],
+        WHXXXX_REGISTER_SELECT
+      );
+    }
+  }
+
+  if (status == SUCCESS) {
+    status = whxxxx_SetCursor(WHXXXX_ROWS - 1U, 0U);
+  }
+  if (status == SUCCESS) {
+    displayRow = WHXXXX_ROWS - 1U;
+    displayColumn = 0U;
+    displayNewLinePending = DISABLE;
+    displayRepaintPending = DISABLE;
+  }
+  return (status);
+}
+#endif
 
 
 
