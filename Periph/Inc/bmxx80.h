@@ -13,6 +13,8 @@
 #include "misc.h"
 #include "stm32f103xb.h"
 
+#define BMXX80_UNIQUE_ID_REG 0x83U
+
 typedef struct {
   uint32_t pressure;
   int32_t temperature;
@@ -73,6 +75,7 @@ typedef struct {
 
 typedef struct {
   uint8_t DevID;
+  uint32_t UniqueID;
   uint8_t* RawBufPtr;
   BMxX80_results_t Results;
   void* CalibPtr;

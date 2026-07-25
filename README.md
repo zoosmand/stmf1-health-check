@@ -5,20 +5,19 @@
 ### Features
 
 * Straightforward peripheral initialization
-* TCP command service on port 5005
+* TCP measurement service on port 5005
+* TCP sensor information and health service on port 5006
 
-### TCP commands
+### TCP measurement commands
 
-Commands may be terminated with `CR`, `LF`, or `CRLF`.
+Measurement commands listen on TCP port 5005. Commands may be terminated with
+`CR`, `LF`, or `CRLF`.
 The server sends one response and then closes the connection. Sensor commands
 return cached results from the periodic measurement service; they do not start
 a new conversion.
 
 | Command | Response |
 | --- | --- |
-| `get_sensors` | Number of registered sensors by measurement type |
-| `get_model_X` | Model of physical sensor `X` |
-| `health_X` | Cached availability and health of physical sensor `X` |
 | `get_all_X` | All recent measurements from physical sensor `X` |
 | `get_t_X` | Recent temperature from temperature sensor `X` |
 | `get_p_X` | Recent pressure from pressure sensor `X` |
@@ -26,13 +25,37 @@ a new conversion.
 | `get_tmpr` | Recent temperatures from all temperature sensors |
 | Unknown command | `ERR unknown_command\r\n` |
 
-Sensor numbers are one-based. `get_model_X`, `health_X`, and `get_all_X` use the
-physical sensor list. The temperature, pressure, and humidity commands each use
-their own capability-specific list. For example, `get_p_1` selects the first
-sensor that provides pressure, even if that device is not physical sensor 1.
+Sensor numbers are one-based. Every command uses the same physical sensor list.
+For example, if physical sensor 1 is a DS18B20, `get_t_1` returns its
+temperature while `get_p_1` and `get_h_1` return
+`ERR measurement_not_supported`.
+
+Example responses:
+
+```text
+get_all_1   -> OK model:DS18B20,t:28.06
+get_all_3   -> OK model:BME280,t:26.98,p:100099,h:46.419
+get_t_1     -> OK 28.06
+get_p_1     -> OK 100099
+get_h_1     -> OK 46.419
+```
+
+### TCP sensor information and health
+
+Sensor information and health checks listen on a separate WIZnet socket on TCP
+port 5006.
+
+| Command | Response |
+| --- | --- |
+| `get_sensors` | Number of registered sensors by measurement type |
+| `get_model_X` | Model of physical sensor `X` |
+| `get_sn_X` | Serial number of physical sensor `X` |
+| `health_X` | Cached availability and health of physical sensor `X` |
+
+These commands use the same one-based physical sensor list as `get_all_X`.
 Physical indexes remain assigned to the same registered sensor. DS18B20 devices
-are identified by their unique ROM addresses, so disconnecting one does not
-renumber the others.
+are identified by their unique 64-bit ROM addresses, so disconnecting one does
+not renumber the others.
 
 `get_sensors` returns counts in the following format:
 
@@ -44,23 +67,30 @@ Here, `all` is the number of physical sensors. A sensor that provides multiple
 measurement types is counted once in `all` and once in each applicable type.
 Gas measurements are reserved for a future protocol extension.
 
-Example responses:
+Information examples:
 
 ```text
 get_model_1 -> OK DS18B20
-get_all_1   -> OK model:DS18B20,t:28.06
-get_all_3   -> OK model:BME280,t:26.98,p:100099,h:46.419
-get_t_1     -> OK 28.06
-get_p_1     -> OK 100099
-get_h_1     -> OK 46.419
+get_sn_1    -> OK 28FF641D2A1603B7
 ```
 
-`health_X` reads service metadata and does not communicate with the sensor. A
-healthy response includes the model, time since the last successful measurement
-in milliseconds, consecutive failure count, and last error:
+DS18B20 serial numbers are returned as 16 uppercase hexadecimal digits. Bosch
+sensor serial numbers use the per-device 31-bit Unique ID and are returned as
+eight uppercase hexadecimal digits.
+
+`health_X` reads cached service metadata and does not communicate with the
+sensor. A healthy response includes the model, time since the last successful
+measurement in milliseconds, consecutive failure count, and last error:
 
 ```text
 health_1 -> OK model:DS18B20,state:healthy,age_ms:2150,failures:0,error:none
+```
+
+Example using Netcat:
+
+```console
+$ printf 'health_1\r\n' | nc 192.168.1.10 5006
+OK model:DS18B20,state:healthy,age_ms:2150,failures:0,error:none
 ```
 
 The possible health states are:
@@ -87,7 +117,8 @@ Possible error responses include:
 | Response | Meaning |
 | --- | --- |
 | `ERR invalid_sensor_number` | The index is missing, zero, malformed, or too large |
-| `ERR sensor_not_found` | The requested physical or capability-specific index does not exist |
+| `ERR sensor_not_found` | The requested physical sensor index does not exist |
+| `ERR measurement_not_supported` | The selected sensor does not provide the requested measurement type |
 | `ERR measurement_unavailable` | The sensor exists, but no valid recent measurement is available |
 | `ERR temperature_unavailable` | No complete result is available for the legacy `get_tmpr` command |
 | `ERR command_too_long` | The command exceeds the receive buffer |
@@ -96,10 +127,10 @@ Possible error responses include:
 Example using Netcat, with the device at `192.168.1.10`:
 
 ```console
-$ printf 'get_sensors\r\n' | nc 192.168.1.10 5005
-OK t:4,h:2,p:2,all:4
 $ printf 'get_all_3\r\n' | nc 192.168.1.10 5005
 OK model:BME280,t:26.98,p:100099,h:46.419
+$ printf 'get_sensors\r\n' | nc 192.168.1.10 5006
+OK t:4,h:2,p:2,all:4
 ```
 
 ---

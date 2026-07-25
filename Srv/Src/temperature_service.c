@@ -316,6 +316,7 @@ static void temperatureSensorService_UpdateSnapshots(
         .health = SENSOR_HEALTH_INITIALIZING,
         .lastError = SENSOR_ERROR_NOT_READY
       };
+      sensorSnapshots[index].serialNumber = device->UniqueID;
     }
     if (index >= 0) {
       sensorSnapshots[index].temperature = device->Results.temperature;
@@ -343,6 +344,7 @@ static void temperatureSensorService_UpdateSnapshots(
         .health = SENSOR_HEALTH_INITIALIZING,
         .lastError = SENSOR_ERROR_NOT_READY
       };
+      sensorSnapshots[index].serialNumber = device->UniqueID;
     }
     if (index >= 0) {
       sensorSnapshots[index].temperature = device->Results.temperature;

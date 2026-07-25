@@ -49,6 +49,7 @@ typedef struct {
   SensorModel_TypeDef model;
   uint8_t capabilities;
   uint8_t identity[8];
+  uint32_t serialNumber;
   BaseType_t dataValid;
   int32_t temperature;
   uint32_t pressure;
