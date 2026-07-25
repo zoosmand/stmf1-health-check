@@ -26,13 +26,38 @@ typedef enum {
   SENSOR_CAPABILITY_HUMIDITY    = (1U << 2U)
 } SensorCapability_TypeDef;
 
+typedef enum {
+  SENSOR_HEALTH_INITIALIZING = 0U,
+  SENSOR_HEALTH_HEALTHY,
+  SENSOR_HEALTH_DEGRADED,
+  SENSOR_HEALTH_FAILED,
+  SENSOR_HEALTH_STALE,
+  SENSOR_HEALTH_MISSING
+} SensorHealthState_TypeDef;
+
+typedef enum {
+  SENSOR_ERROR_NONE = 0U,
+  SENSOR_ERROR_NOT_READY,
+  SENSOR_ERROR_TIMEOUT,
+  SENSOR_ERROR_CRC,
+  SENSOR_ERROR_BUS,
+  SENSOR_ERROR_MISSING,
+  SENSOR_ERROR_CONVERSION
+} SensorError_TypeDef;
+
 typedef struct {
   SensorModel_TypeDef model;
   uint8_t capabilities;
+  uint8_t identity[8];
   BaseType_t dataValid;
   int32_t temperature;
   uint32_t pressure;
   uint32_t humidity;
+  TickType_t lastAttempt;
+  TickType_t lastSuccess;
+  uint16_t consecutiveFailures;
+  SensorHealthState_TypeDef health;
+  SensorError_TypeDef lastError;
 } SensorSnapshot_TypeDef;
 
 typedef struct {

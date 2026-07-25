@@ -30,6 +30,8 @@ static ErrorStatus tcpCommandService_ParseSensorNumber(
   uint8_t*
 );
 static const char* tcpCommandService_ModelName(SensorModel_TypeDef);
+static const char* tcpCommandService_HealthName(SensorHealthState_TypeDef);
+static const char* tcpCommandService_ErrorName(SensorError_TypeDef);
 static void tcpCommandService_AppendTemperature(char*, size_t, size_t*, int16_t);
 static void tcpCommandService_AppendPressure(char*, size_t, size_t*, uint32_t);
 static void tcpCommandService_AppendHumidity(char*, size_t, size_t*, uint32_t);
@@ -238,6 +240,7 @@ static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t le
   typedef enum {
     TCP_SENSOR_COMMAND_NONE = 0U,
     TCP_SENSOR_COMMAND_MODEL,
+    TCP_SENSOR_COMMAND_HEALTH,
     TCP_SENSOR_COMMAND_ALL,
     TCP_SENSOR_COMMAND_TEMPERATURE,
     TCP_SENSOR_COMMAND_PRESSURE,
@@ -249,6 +252,9 @@ static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t le
   if ((length > 10U) && (memcmp(command, "get_model_", 10U) == 0)) {
     commandType = TCP_SENSOR_COMMAND_MODEL;
     prefixLength = 10U;
+  } else if ((length > 7U) && (memcmp(command, "health_", 7U) == 0)) {
+    commandType = TCP_SENSOR_COMMAND_HEALTH;
+    prefixLength = 7U;
   } else if ((length > 8U) && (memcmp(command, "get_all_", 8U) == 0)) {
     commandType = TCP_SENSOR_COMMAND_ALL;
     prefixLength = 8U;
@@ -282,6 +288,7 @@ static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t le
   SensorSnapshot_TypeDef snapshot;
   ErrorStatus lookupStatus;
   if ((commandType == TCP_SENSOR_COMMAND_MODEL)
+      || (commandType == TCP_SENSOR_COMMAND_HEALTH)
       || (commandType == TCP_SENSOR_COMMAND_ALL)) {
     lookupStatus = TemperatureSensorService_GetSnapshot(sensorNumber, &snapshot);
   } else {
@@ -309,6 +316,33 @@ static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t le
       "OK %s\r\n",
       tcpCommandService_ModelName(snapshot.model)
     );
+    (void)tcpCommandService_Send(response);
+    return;
+  }
+  if (commandType == TCP_SENSOR_COMMAND_HEALTH) {
+    if (snapshot.lastSuccess == 0U) {
+      (void)snprintf(
+        response,
+        sizeof(response),
+        "OK model:%s,state:%s,age_ms:unavailable,failures:%u,error:%s\r\n",
+        tcpCommandService_ModelName(snapshot.model),
+        tcpCommandService_HealthName(snapshot.health),
+        snapshot.consecutiveFailures,
+        tcpCommandService_ErrorName(snapshot.lastError)
+      );
+    } else {
+      TickType_t age = xTaskGetTickCount() - snapshot.lastSuccess;
+      (void)snprintf(
+        response,
+        sizeof(response),
+        "OK model:%s,state:%s,age_ms:%lu,failures:%u,error:%s\r\n",
+        tcpCommandService_ModelName(snapshot.model),
+        tcpCommandService_HealthName(snapshot.health),
+        (unsigned long)(age * portTICK_PERIOD_MS),
+        snapshot.consecutiveFailures,
+        tcpCommandService_ErrorName(snapshot.lastError)
+      );
+    }
     (void)tcpCommandService_Send(response);
     return;
   }
@@ -394,6 +428,41 @@ static const char* tcpCommandService_ModelName(SensorModel_TypeDef model) {
     case SENSOR_MODEL_BME280:  return ("BME280");
     case SENSOR_MODEL_BME680:  return ("BME680");
     default:                   return ("unknown");
+  }
+}
+
+
+
+
+// -------------------------------------------------------------
+static const char* tcpCommandService_HealthName(
+  SensorHealthState_TypeDef health
+) {
+  switch (health) {
+    case SENSOR_HEALTH_INITIALIZING: return ("initializing");
+    case SENSOR_HEALTH_HEALTHY:      return ("healthy");
+    case SENSOR_HEALTH_DEGRADED:     return ("degraded");
+    case SENSOR_HEALTH_FAILED:       return ("failed");
+    case SENSOR_HEALTH_STALE:        return ("stale");
+    case SENSOR_HEALTH_MISSING:      return ("missing");
+    default:                         return ("unknown");
+  }
+}
+
+
+
+
+// -------------------------------------------------------------
+static const char* tcpCommandService_ErrorName(SensorError_TypeDef error) {
+  switch (error) {
+    case SENSOR_ERROR_NONE:       return ("none");
+    case SENSOR_ERROR_NOT_READY:  return ("not_ready");
+    case SENSOR_ERROR_TIMEOUT:    return ("timeout");
+    case SENSOR_ERROR_CRC:        return ("crc");
+    case SENSOR_ERROR_BUS:        return ("bus");
+    case SENSOR_ERROR_MISSING:    return ("missing");
+    case SENSOR_ERROR_CONVERSION: return ("conversion");
+    default:                      return ("unknown");
   }
 }
 

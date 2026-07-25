@@ -21,14 +21,31 @@
 
 
 
+typedef enum {
+  DS18B20_STATUS_OK = 0U,
+  DS18B20_STATUS_BUS,
+  DS18B20_STATUS_TIMEOUT,
+  DS18B20_STATUS_CRC
+} DS18B20_Status_TypeDef;
+
+typedef struct {
+  uint8_t rom[8];
+  int16_t temperature;
+  DS18B20_Status_TypeDef status;
+} DS18B20_Measurement_TypeDef;
+
 /**
-  * @brief  Converts and reads temperatures from discovered DS18B20 devices.
-  * @param  temperatures Output array in hundredths of a degree Celsius.
-  * @param  capacity Number of elements available in temperatures.
-  * @param  count Number of temperatures written.
-  * @retval SUCCESS when at least one sensor was converted and read.
+  * @brief Converts and reads every discovered DS18B20 independently.
+  * @param measurements Per-device identity, value, and status output.
+  * @param capacity Number of elements available in measurements.
+  * @param count Number of discovered devices written.
+  * @retval SUCCESS when at least one discovered device was reported.
   */
-ErrorStatus DS18B20_MeasureTemperatures(int16_t*, uint8_t, uint8_t*);
+ErrorStatus DS18B20_Measure(
+  DS18B20_Measurement_TypeDef*,
+  uint8_t,
+  uint8_t*
+);
 
 
 /* Private defines -----------------------------------------------------------*/
