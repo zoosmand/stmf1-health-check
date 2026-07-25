@@ -134,34 +134,6 @@ ErrorStatus TemperatureSensorService_GetSnapshot(
 
 
 // -------------------------------------------------------------
-ErrorStatus TemperatureSensorService_GetByCapability(
-  SensorCapability_TypeDef capability,
-  uint8_t sensorNumber,
-  SensorSnapshot_TypeDef* snapshot
-) {
-  if ((sensorNumber == 0U) || (snapshot == NULL)) return (ERROR);
-  uint8_t match = 0U;
-  ErrorStatus status = ERROR;
-  taskENTER_CRITICAL();
-  for (uint8_t i = 0U; i < sensorSnapshotCount; i++) {
-    if ((sensorSnapshots[i].capabilities & capability) != 0U) {
-      match++;
-      if (match == sensorNumber) {
-        *snapshot = sensorSnapshots[i];
-        temperatureSensorService_ApplyAge(snapshot);
-        status = SUCCESS;
-        break;
-      }
-    }
-  }
-  taskEXIT_CRITICAL();
-  return (status);
-}
-
-
-
-
-// -------------------------------------------------------------
 static void temperatureSensorService_Task(void* parameters) {
   (void)parameters;
   TickType_t lastWakeTime = xTaskGetTickCount();

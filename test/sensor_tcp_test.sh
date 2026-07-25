@@ -51,6 +51,7 @@ log "Started: $(date '+%Y-%m-%d %H:%M:%S %z')"
 log ""
 
 expect_prefix "${MEASUREMENT_PORT}" "get_sensors" "ERR unknown_command"
+expect_prefix "${MEASUREMENT_PORT}" "get_tmpr" "ERR unknown_command"
 expect_prefix "${INFO_PORT}" "get_t_1" "ERR unknown_command"
 
 SENSOR_RESPONSE="$(request "${INFO_PORT}" "get_sensors")"

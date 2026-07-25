@@ -74,10 +74,5 @@ ErrorStatus TemperatureSensorService_GetSnapshot(
   uint8_t,
   SensorSnapshot_TypeDef*
 );
-ErrorStatus TemperatureSensorService_GetByCapability(
-  SensorCapability_TypeDef,
-  uint8_t,
-  SensorSnapshot_TypeDef*
-);
 
 #endif /* __TEMPERATURE_SERVICE_H */

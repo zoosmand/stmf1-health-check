@@ -22,7 +22,6 @@ a new conversion.
 | `get_t_X` | Recent temperature from temperature sensor `X` |
 | `get_p_X` | Recent pressure from pressure sensor `X` |
 | `get_h_X` | Recent relative humidity from humidity sensor `X` |
-| `get_tmpr` | Recent temperatures from all temperature sensors |
 | Unknown command | `ERR unknown_command\r\n` |
 
 Sensor numbers are one-based. Every command uses the same physical sensor list.
@@ -109,8 +108,7 @@ Diagnostic errors currently include `none`, `not_ready`, `timeout`, `crc`,
 measurement, the response contains `age_ms:unavailable`.
 
 Temperature is expressed in degrees Celsius, pressure in pascals, and relative
-humidity as a percentage. `get_tmpr` remains available for compatibility and
-returns all recent temperatures in one response.
+humidity as a percentage.
 
 Possible error responses include:
 
@@ -120,7 +118,6 @@ Possible error responses include:
 | `ERR sensor_not_found` | The requested physical sensor index does not exist |
 | `ERR measurement_not_supported` | The selected sensor does not provide the requested measurement type |
 | `ERR measurement_unavailable` | The sensor exists, but no valid recent measurement is available |
-| `ERR temperature_unavailable` | No complete result is available for the legacy `get_tmpr` command |
 | `ERR command_too_long` | The command exceeds the receive buffer |
 | `ERR unknown_command` | The command name is not supported |
 

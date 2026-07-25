@@ -41,6 +41,7 @@ static ErrorStatus tcpCommandService_ParseSensorNumber(
 static const char* tcpCommandService_ModelName(SensorModel_TypeDef);
 static const char* tcpCommandService_HealthName(SensorHealthState_TypeDef);
 static const char* tcpCommandService_ErrorName(SensorError_TypeDef);
+static void tcpCommandService_AppendText(char*, size_t, size_t*, const char*);
 static void tcpCommandService_AppendTemperature(char*, size_t, size_t*, int16_t);
 static void tcpCommandService_AppendPressure(char*, size_t, size_t*, uint32_t);
 static void tcpCommandService_AppendHumidity(char*, size_t, size_t*, uint32_t);
@@ -91,7 +92,6 @@ void TcpCommandService_Run(void) {
       if ((getSn_IR(TCP_COMMAND_SOCKET) & Sn_IR_CON) != 0U) {
         setSn_IR(TCP_COMMAND_SOCKET, Sn_IR_CON);
         commandLength = 0U;
-        printf("TCP connection\n");
       }
 
       tcpCommandService_Receive();
@@ -135,7 +135,6 @@ static void tcpHealthService_Run(void) {
       if ((getSn_IR(TCP_HEALTH_SOCKET) & Sn_IR_CON) != 0U) {
         setSn_IR(TCP_HEALTH_SOCKET, Sn_IR_CON);
         healthLength = 0U;
-        printf("Service info connection\n");
       }
       tcpHealthService_Receive();
       break;
@@ -255,11 +254,7 @@ static void tcpCommandService_ProcessInput(void) {
     commandLength = remaining;
   }
 
-  /* Also accept the complete example command without a line terminator. */
-  if ((commandLength == 8U) && (memcmp(commandBuffer, "get_tmpr", 8U) == 0)) {
-    tcpCommandService_ProcessCommand(commandBuffer, commandLength);
-    commandLength = 0U;
-  } else if (commandLength == TCP_COMMAND_BUFFER_SIZE) {
+  if (commandLength == TCP_COMMAND_BUFFER_SIZE) {
     (void) tcpCommandService_Send("ERR command_too_long\r\n");
     commandLength = 0U;
   }
@@ -304,43 +299,6 @@ static void tcpHealthService_ProcessInput(void) {
 static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t length) {
   char response[TCP_RESPONSE_SIZE];
   size_t used = 0U;
-
-  /* Preserve the original command as an alias returning all temperatures. */
-  if ((length == 8U) && (memcmp(command, "get_tmpr", 8U) == 0)) {
-    SensorCounts_TypeDef counts;
-    TemperatureSensorService_GetCounts(&counts);
-    used = (size_t)snprintf(response, sizeof(response), "OK");
-    for (uint8_t i = 1U; i <= counts.temperature; i++) {
-      SensorSnapshot_TypeDef snapshot;
-      if ((TemperatureSensorService_GetByCapability(
-             SENSOR_CAPABILITY_TEMPERATURE,
-             i,
-             &snapshot
-           ) != SUCCESS)
-          || (snapshot.dataValid != pdTRUE)) {
-        (void)tcpCommandService_Send("ERR temperature_unavailable\r\n");
-        return;
-      }
-      response[used++] = ' ';
-      tcpCommandService_AppendTemperature(
-        response,
-        sizeof(response),
-        &used,
-        snapshot.temperature
-      );
-    }
-    if (counts.temperature == 0U) {
-      (void)tcpCommandService_Send("ERR temperature_unavailable\r\n");
-      return;
-    }
-    if (used < (sizeof(response) - 2U)) {
-      response[used++] = '\r';
-      response[used++] = '\n';
-      response[used] = '\0';
-    }
-    (void)tcpCommandService_Send(response);
-    return;
-  }
 
   typedef enum {
     TCP_SENSOR_COMMAND_NONE = 0U,
@@ -414,14 +372,16 @@ static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t le
   if ((commandType == TCP_SENSOR_COMMAND_ALL)
       || (commandType == TCP_SENSOR_COMMAND_TEMPERATURE)) {
     if (commandType == TCP_SENSOR_COMMAND_ALL) {
-      used += (size_t)snprintf(
-        &response[used],
-        sizeof(response) - used,
-        " model:%s,t:",
+      tcpCommandService_AppendText(response, sizeof(response), &used, " model:");
+      tcpCommandService_AppendText(
+        response,
+        sizeof(response),
+        &used,
         tcpCommandService_ModelName(snapshot.model)
       );
+      tcpCommandService_AppendText(response, sizeof(response), &used, ",t:");
     } else {
-      response[used++] = ' ';
+      tcpCommandService_AppendText(response, sizeof(response), &used, " ");
     }
     tcpCommandService_AppendTemperature(
       response,
@@ -432,18 +392,18 @@ static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t le
   }
   if ((commandType == TCP_SENSOR_COMMAND_ALL)
       && ((snapshot.capabilities & SENSOR_CAPABILITY_PRESSURE) != 0U)) {
-    used += (size_t)snprintf(&response[used], sizeof(response) - used, ",p:");
+    tcpCommandService_AppendText(response, sizeof(response), &used, ",p:");
     tcpCommandService_AppendPressure(response, sizeof(response), &used, snapshot.pressure);
   } else if (commandType == TCP_SENSOR_COMMAND_PRESSURE) {
-    response[used++] = ' ';
+    tcpCommandService_AppendText(response, sizeof(response), &used, " ");
     tcpCommandService_AppendPressure(response, sizeof(response), &used, snapshot.pressure);
   }
   if ((commandType == TCP_SENSOR_COMMAND_ALL)
       && ((snapshot.capabilities & SENSOR_CAPABILITY_HUMIDITY) != 0U)) {
-    used += (size_t)snprintf(&response[used], sizeof(response) - used, ",h:");
+    tcpCommandService_AppendText(response, sizeof(response), &used, ",h:");
     tcpCommandService_AppendHumidity(response, sizeof(response), &used, snapshot.humidity);
   } else if (commandType == TCP_SENSOR_COMMAND_HUMIDITY) {
-    response[used++] = ' ';
+    tcpCommandService_AppendText(response, sizeof(response), &used, " ");
     tcpCommandService_AppendHumidity(response, sizeof(response), &used, snapshot.humidity);
   }
   if (used < (sizeof(response) - 2U)) {
@@ -658,6 +618,28 @@ static const char* tcpCommandService_ErrorName(SensorError_TypeDef error) {
     case SENSOR_ERROR_CONVERSION: return ("conversion");
     default:                      return ("unknown");
   }
+}
+
+
+
+
+// -------------------------------------------------------------
+static void tcpCommandService_AppendText(
+  char* response,
+  size_t capacity,
+  size_t* used,
+  const char* text
+) {
+  if ((response == NULL) || (used == NULL) || (text == NULL)
+      || (*used >= capacity)) {
+    return;
+  }
+  size_t available = capacity - *used - 1U;
+  size_t length = strlen(text);
+  size_t copyLength = (length < available) ? length : available;
+  memcpy(&response[*used], text, copyLength);
+  *used += copyLength;
+  response[*used] = '\0';
 }
 
 
