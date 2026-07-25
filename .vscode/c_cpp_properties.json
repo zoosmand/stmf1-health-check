@@ -34,7 +34,8 @@
             "PREFETCH_ENABLE=1",
             "STM32F103xB",
             // "ITM_OUT=0",
-            "USE_WH_DISPLAY",
+            // "USE_WH_DISPLAY",
+            "USE_SSD_DISPLAY",
             "USART_OUT=USART1"
          ],
          "intelliSenseMode": "macos-clang-arm64",
