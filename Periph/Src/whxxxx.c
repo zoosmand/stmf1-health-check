@@ -13,18 +13,15 @@
 #define WHXXXX_BACKLIGHT       (1U << 3U)
 #define WHXXXX_ENABLE          (1U << 2U)
 #define WHXXXX_REGISTER_SELECT (1U << 0U)
-#define WHXXXX_DISPLAY_SHIFT_LEFT 0x18U
 
 #if (WH_DSPL_MODEL == 1602)
 #define WHXXXX_COLUMNS           16U
 #define WHXXXX_ROWS              2U
-#define WHXXXX_ONE_LINE_LENGTH   24U
-#define WHXXXX_ONE_LINE_SHIFT    1U
+#define WHXXXX_ONE_LINE_LENGTH   16U
 #elif (WH_DSPL_MODEL == 2004)
 #define WHXXXX_COLUMNS           20U
 #define WHXXXX_ROWS              4U
 #define WHXXXX_ONE_LINE_LENGTH   40U
-#define WHXXXX_ONE_LINE_SHIFT    0U
 #else
 #error "Unsupported WHxxxx display model"
 #endif
@@ -176,11 +173,6 @@ int putc_dspl_wh(char character) {
       status = whxxxx_WriteByte((uint8_t)character, WHXXXX_REGISTER_SELECT);
       if (status == SUCCESS) {
         displayColumn++;
-#if (WHXXXX_ONE_LINE_SHIFT == 1U)
-        if (displayColumn > WHXXXX_COLUMNS) {
-          status = whxxxx_Command(WHXXXX_DISPLAY_SHIFT_LEFT);
-        }
-#endif
       }
     }
   }
