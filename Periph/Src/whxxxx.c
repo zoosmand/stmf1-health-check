@@ -13,6 +13,9 @@
 #define WHXXXX_BACKLIGHT       (1U << 3U)
 #define WHXXXX_ENABLE          (1U << 2U)
 #define WHXXXX_REGISTER_SELECT (1U << 0U)
+#define WHXXXX_DISPLAY_SHIFT_LEFT 0x18U
+#define WHXXXX_PRINTF_LINE_LENGTH 24U
+#define WHXXXX_PRINTF_COLUMNS     16U
 
 #if (WH_DSPL_MODEL == 1602)
 #define WHXXXX_COLUMNS 16U
@@ -37,13 +40,20 @@ static uint8_t displayAddress;
 static uint8_t displayRow;
 static uint8_t displayColumn;
 static FunctionalState displayReady;
+static FunctionalState displayNewLinePending;
+#if (WH_DSPL_LINE_MODE == 2)
+static uint8_t displayPreviousLine[WHXXXX_PRINTF_COLUMNS];
+#endif
 static SemaphoreHandle_t displayMutex;
 static StaticSemaphore_t displayMutexBuffer;
 
 static ErrorStatus whxxxx_WriteNibble(uint8_t, uint8_t);
 static ErrorStatus whxxxx_WriteByte(uint8_t, uint8_t);
 static ErrorStatus whxxxx_Command(uint8_t);
+#if (WH_DSPL_LINE_MODE == 2)
 static ErrorStatus whxxxx_SetCursor(uint8_t, uint8_t);
+static ErrorStatus whxxxx_StartPrintfLine(void);
+#endif
 static ErrorStatus whxxxx_Lock(void);
 static void whxxxx_Unlock(void);
 
@@ -57,6 +67,13 @@ ErrorStatus WHxxxx_Init(I2C_TypeDef* i2c, uint8_t address) {
   displayAddress = address;
   displayRow = 0U;
   displayColumn = 0U;
+  displayNewLinePending = DISABLE;
+#if (WH_DSPL_LINE_MODE == 2)
+  for (uint8_t i = 0U; i < WHXXXX_PRINTF_COLUMNS; i++) {
+    displayPreviousLine[i] = ' ';
+  }
+  displayNewLinePending = ENABLE;
+#endif
   displayMutex = xSemaphoreCreateMutexStatic(&displayMutexBuffer);
   if (displayMutex == NULL) return (ERROR);
 
@@ -92,6 +109,13 @@ ErrorStatus WHxxxx_Clear(void) {
     _delay_us(1640U);
     displayRow = 0U;
     displayColumn = 0U;
+    displayNewLinePending = DISABLE;
+#if (WH_DSPL_LINE_MODE == 2)
+    for (uint8_t i = 0U; i < WHXXXX_PRINTF_COLUMNS; i++) {
+      displayPreviousLine[i] = ' ';
+    }
+    displayNewLinePending = ENABLE;
+#endif
   }
   whxxxx_Unlock();
   return (status);
@@ -127,33 +151,45 @@ int putc_dspl_wh(char character) {
   if (whxxxx_Lock() != SUCCESS) return (ERROR);
 
   ErrorStatus status = SUCCESS;
+#if (WH_DSPL_LINE_MODE == 1)
   if (character == '\n') {
-    displayRow++;
-    displayColumn = 0U;
-    if (displayRow >= WHXXXX_ROWS) {
+    displayNewLinePending = ENABLE;
+  } else if (character != '\r') {
+    if (displayNewLinePending == ENABLE) {
       status = whxxxx_Command(0x01U);
       _delay_us(1640U);
       displayRow = 0U;
-    } else {
-      status = whxxxx_SetCursor(displayRow, displayColumn);
-    }
-  } else if (character != '\r') {
-    if (displayColumn >= WHXXXX_COLUMNS) {
-      displayRow++;
       displayColumn = 0U;
-      if (displayRow >= WHXXXX_ROWS) {
-        status = whxxxx_Command(0x01U);
-        _delay_us(1640U);
-        displayRow = 0U;
-      } else {
-        status = whxxxx_SetCursor(displayRow, displayColumn);
+      displayNewLinePending = DISABLE;
+    }
+    if ((status == SUCCESS)
+        && (displayColumn < WHXXXX_PRINTF_LINE_LENGTH)) {
+      status = whxxxx_WriteByte((uint8_t)character, WHXXXX_REGISTER_SELECT);
+      if (status == SUCCESS) {
+        displayColumn++;
+        if (displayColumn > WHXXXX_COLUMNS) {
+          status = whxxxx_Command(WHXXXX_DISPLAY_SHIFT_LEFT);
+        }
       }
     }
-    if (status == SUCCESS) {
+  }
+#else
+  if (character == '\n') {
+    displayNewLinePending = ENABLE;
+  } else if (character != '\r') {
+    if (displayNewLinePending == ENABLE) {
+      status = whxxxx_StartPrintfLine();
+    }
+    if ((status == SUCCESS)
+        && (displayColumn < WHXXXX_PRINTF_COLUMNS)) {
       status = whxxxx_WriteByte((uint8_t)character, WHXXXX_REGISTER_SELECT);
-      displayColumn++;
+      if (status == SUCCESS) {
+        displayPreviousLine[displayColumn] = (uint8_t)character;
+        displayColumn++;
+      }
     }
   }
+#endif
 
   whxxxx_Unlock();
   return (status == SUCCESS) ? (uint8_t)character : ERROR;
@@ -200,6 +236,7 @@ static ErrorStatus whxxxx_Command(uint8_t command) {
 
 
 // -------------------------------------------------------------
+#if (WH_DSPL_LINE_MODE == 2)
 static ErrorStatus whxxxx_SetCursor(uint8_t row, uint8_t column) {
 #if (WH_DSPL_MODEL == 1602)
   static const uint8_t rowOffsets[WHXXXX_ROWS] = {0x00U, 0x40U};
@@ -208,6 +245,43 @@ static ErrorStatus whxxxx_SetCursor(uint8_t row, uint8_t column) {
 #endif
   return whxxxx_Command(0x80U | (rowOffsets[row] + column));
 }
+
+
+
+
+// -------------------------------------------------------------
+static ErrorStatus whxxxx_StartPrintfLine(void) {
+  ErrorStatus status = whxxxx_SetCursor(0U, 0U);
+  for (uint8_t i = 0U;
+       (i < WHXXXX_PRINTF_COLUMNS) && (status == SUCCESS);
+       i++) {
+    status = whxxxx_WriteByte(
+      displayPreviousLine[i],
+      WHXXXX_REGISTER_SELECT
+    );
+    displayPreviousLine[i] = ' ';
+  }
+
+  if (status == SUCCESS) {
+    status = whxxxx_SetCursor(1U, 0U);
+  }
+  for (uint8_t i = 0U;
+       (i < WHXXXX_PRINTF_COLUMNS) && (status == SUCCESS);
+       i++) {
+    status = whxxxx_WriteByte(' ', WHXXXX_REGISTER_SELECT);
+  }
+  if (status == SUCCESS) {
+    status = whxxxx_SetCursor(1U, 0U);
+  }
+
+  if (status == SUCCESS) {
+    displayRow = 1U;
+    displayColumn = 0U;
+    displayNewLinePending = DISABLE;
+  }
+  return (status);
+}
+#endif
 
 
 

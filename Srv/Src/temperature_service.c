@@ -188,45 +188,47 @@ static void temperatureSensorService_PrintMeasurements(
   ErrorStatus bmx280Status,
   ErrorStatus bmx680Status
 ) {
-  printf("Sensors");
+  printf("DS18B20: ");
   if (ds18b20Status == SUCCESS) {
-    printf(" DS=");
     for (uint8_t i = 0U; i < ds18b20Count; i++) {
-      if (i > 0U) printf(",");
+      if (i > 0U) printf(", ");
       temperatureSensorService_PrintCentiDegrees(ds18b20Temperatures[i]);
     }
+    printf(" C");
   } else {
-    printf(" DS=ERR");
+    printf("conversion error");
   }
+  printf("\n");
 
   if (bmx280Status == SUCCESS) {
     BMxX80_TypeDef* device = Get_BoschDevice(BMX280_MODEL);
-    printf((device->DevID == BME280_ID) ? " BME280=" : " BMP280=");
+    printf((device->DevID == BME280_ID) ? "BME280: " : "BMP280: ");
     temperatureSensorService_PrintCentiDegrees(device->Results.temperature);
-    printf("/%lu", (unsigned long)device->Results.pressure);
+    printf(" C, %lu Pa", (unsigned long)device->Results.pressure);
     if (device->DevID == BME280_ID) {
       printf(
-        "/%lu.%03lu",
+        ", %lu.%03lu %%RH",
         (unsigned long)(device->Results.humidity / 1000U),
         (unsigned long)(device->Results.humidity % 1000U)
       );
     }
   } else {
-    printf(" BMx280=ERR");
+    printf("BMx280: conversion error");
   }
+  printf("\n");
 
   if (bmx680Status == SUCCESS) {
     BMxX80_TypeDef* device = Get_BoschDevice(BMX680_MODEL);
-    printf(" BME680=");
+    printf("BME680: ");
     temperatureSensorService_PrintCentiDegrees(device->Results.temperature);
     printf(
-      "/%lu/%lu.%03lu",
+      " C, %lu Pa, %lu.%03lu %%RH",
       (unsigned long)device->Results.pressure,
       (unsigned long)(device->Results.humidity / 1000U),
       (unsigned long)(device->Results.humidity % 1000U)
     );
   } else {
-    printf(" BME680=ERR");
+    printf("BME680: conversion error");
   }
   printf("\n");
 }
