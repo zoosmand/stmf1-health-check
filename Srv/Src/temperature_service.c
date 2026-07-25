@@ -489,13 +489,14 @@ static void temperatureSensorService_PrintMeasurements(
 // -------------------------------------------------------------
 static void temperatureSensorService_ReportMemory(void) {
   printf(
-    "Memory heap=%u min=%u stack=%u/%u/%u/%u\n",
+    "Memory heap=%u min=%u stack=%u/%u/%u/%u/%u\n",
     (unsigned int)xPortGetFreeHeapSize(),
     (unsigned int)xPortGetMinimumEverFreeHeapSize(),
     (unsigned int)temperatureSensorService_GetStackMargin("Heart Beat"),
     (unsigned int)temperatureSensorService_GetStackMargin("OW Bus Init"),
     (unsigned int)uxTaskGetStackHighWaterMark(NULL),
-    (unsigned int)temperatureSensorService_GetStackMargin("TCP Commands")
+    (unsigned int)temperatureSensorService_GetStackMargin("TCP Commands"),
+    (unsigned int)temperatureSensorService_GetStackMargin("Health")
   );
 }
 

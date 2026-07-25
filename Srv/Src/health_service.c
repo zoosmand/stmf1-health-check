@@ -24,12 +24,12 @@ static void healthService_WatchdogReload(void);
 // -------------------------------------------------------------
 void HealthService_Init(void) {
   static StaticTask_t taskControlBlock;
-  static StackType_t taskStack[configMINIMAL_STACK_SIZE];
+  static StackType_t taskStack[configMINIMAL_STACK_SIZE * 2U];
 
   (void)xTaskCreateStatic(
     healthService_Task,
     "Health",
-    configMINIMAL_STACK_SIZE,
+    configMINIMAL_STACK_SIZE * 2U,
     NULL,
     configMAX_PRIORITIES - 1U,
     taskStack,
@@ -119,7 +119,8 @@ static void healthService_Task(void* parameters) {
 static void healthService_WatchdogInit(void) {
   /*
    * Start IWDG after application initialization has completed and the
-   * scheduler is running. The nominal timeout is 2.4 seconds.
+   * scheduler is running. The configured timeout is 2.4 seconds at the
+   * nominal 40 kHz LSI frequency; LSI tolerance determines the actual delay.
    */
   IWDG->KR = IWDG_KEY_ENABLE;
   IWDG->KR = IWDG_KEY_ACCESS;

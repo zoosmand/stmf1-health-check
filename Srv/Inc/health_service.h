@@ -23,7 +23,8 @@ void HealthService_Report(HealthComponent_TypeDef);
 /**
  * @brief Latch an emergency condition and stop reloading the watchdog.
  *
- * The IWDG resets the controller within four seconds after this call.
+ * The IWDG timeout is nominally 2.4 seconds. The recovery target remains
+ * within four seconds after allowing for the uncalibrated LSI tolerance.
  */
 void system_error(void);
 
