@@ -79,6 +79,8 @@ int main(void) {
     TcpCommandService_Init();
   }
 
+  /* Run the internal health and watchdog service last. */
+  HealthService_Init();
 
   /* Start the scheduler. */
   vTaskStartScheduler();
@@ -95,6 +97,9 @@ int main(void) {
          * or pxCurrentTCB if pcTaskName has itself been corrupted. */
         (void) xTask;
         (void) pcTaskName;
+        system_error();
+        taskDISABLE_INTERRUPTS();
+        while (1);
     }
 
 #endif /* #if (configCHECK_FOR_STACK_OVERFLOW > 0) */
@@ -243,7 +248,5 @@ void SystemInit (void) {
       | DBGMCU_CR_DBG_WWDG_STOP
     ));
   #endif /* DEBUG */
-
-
 
 }

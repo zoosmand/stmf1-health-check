@@ -54,6 +54,7 @@ void TcpCommandService_Init(void) {
   static StaticTask_t taskControlBlock;
   static StackType_t taskStack[512];
 
+  HealthService_Register(HEALTH_COMPONENT_TCP);
   (void) xTaskCreateStatic(
     tcpCommandService_Task,
     "TCP Commands",
@@ -78,6 +79,7 @@ static void tcpCommandService_Task(void* parameters) {
       tcpHealthService_Run();
       (void) SPI_Disable(SPI1);
     }
+    HealthService_Report(HEALTH_COMPONENT_TCP);
     vTaskDelay(1U);
   }
 }
