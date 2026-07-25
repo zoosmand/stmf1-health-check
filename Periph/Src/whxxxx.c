@@ -45,6 +45,7 @@ static FunctionalState displayReady;
 static FunctionalState displayNewLinePending;
 #if (WH_DSPL_LINE_MODE == 2)
 static uint8_t displayLines[WHXXXX_ROWS][WHXXXX_COLUMNS];
+static FunctionalState displayRepaintPending;
 #endif
 static SemaphoreHandle_t displayMutex;
 static StaticSemaphore_t displayMutexBuffer;
@@ -77,6 +78,7 @@ ErrorStatus WHxxxx_Init(I2C_TypeDef* i2c, uint8_t address) {
     }
   }
   displayNewLinePending = ENABLE;
+  displayRepaintPending = DISABLE;
 #endif
   displayMutex = xSemaphoreCreateMutexStatic(&displayMutexBuffer);
   if (displayMutex == NULL) return (ERROR);
@@ -121,6 +123,7 @@ ErrorStatus WHxxxx_Clear(void) {
       }
     }
     displayNewLinePending = ENABLE;
+    displayRepaintPending = DISABLE;
 #endif
   }
   whxxxx_Unlock();
@@ -259,13 +262,16 @@ static ErrorStatus whxxxx_SetCursor(uint8_t row, uint8_t column) {
 
 // -------------------------------------------------------------
 static ErrorStatus whxxxx_StartPrintfLine(void) {
-  for (uint8_t row = 0U; row < (WHXXXX_ROWS - 1U); row++) {
-    for (uint8_t column = 0U; column < WHXXXX_COLUMNS; column++) {
-      displayLines[row][column] = displayLines[row + 1U][column];
+  if (displayRepaintPending == DISABLE) {
+    for (uint8_t row = 0U; row < (WHXXXX_ROWS - 1U); row++) {
+      for (uint8_t column = 0U; column < WHXXXX_COLUMNS; column++) {
+        displayLines[row][column] = displayLines[row + 1U][column];
+      }
     }
-  }
-  for (uint8_t column = 0U; column < WHXXXX_COLUMNS; column++) {
-    displayLines[WHXXXX_ROWS - 1U][column] = ' ';
+    for (uint8_t column = 0U; column < WHXXXX_COLUMNS; column++) {
+      displayLines[WHXXXX_ROWS - 1U][column] = ' ';
+    }
+    displayRepaintPending = ENABLE;
   }
 
   ErrorStatus status = SUCCESS;
@@ -290,6 +296,7 @@ static ErrorStatus whxxxx_StartPrintfLine(void) {
     displayRow = WHXXXX_ROWS - 1U;
     displayColumn = 0U;
     displayNewLinePending = DISABLE;
+    displayRepaintPending = DISABLE;
   }
   return (status);
 }
