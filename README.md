@@ -10,21 +10,69 @@
 ### TCP commands
 
 Commands may be terminated with `CR`, `LF`, or `CRLF`.
+The server sends one response and then closes the connection. Sensor commands
+return cached results from the periodic measurement service; they do not start
+a new conversion.
 
 | Command | Response |
 | --- | --- |
-| `get_tmpr` | `OK <latest-temperature> [<latest-temperature>]\r\n` |
+| `get_sensors` | Number of registered sensors by measurement type |
+| `get_model_X` | Model of physical sensor `X` |
+| `get_all_X` | All recent measurements from physical sensor `X` |
+| `get_t_X` | Recent temperature from temperature sensor `X` |
+| `get_p_X` | Recent pressure from pressure sensor `X` |
+| `get_h_X` | Recent relative humidity from humidity sensor `X` |
+| `get_tmpr` | Recent temperatures from all temperature sensors |
 | Unknown command | `ERR unknown_command\r\n` |
 
-The `get_tmpr` command returns the most recent periodic measurement without
-starting a new conversion. Until the first measurement is available, it returns
-`ERR temperature_unavailable\r\n`.
+Sensor numbers are one-based. `get_model_X` and `get_all_X` use the physical
+sensor list. The temperature, pressure, and humidity commands each use their own
+capability-specific list. For example, `get_p_1` selects the first sensor that
+provides pressure, even if that device is not physical sensor 1.
+
+`get_sensors` returns counts in the following format:
+
+```text
+OK t:4,h:2,p:2,all:4
+```
+
+Here, `all` is the number of physical sensors. A sensor that provides multiple
+measurement types is counted once in `all` and once in each applicable type.
+Gas measurements are reserved for a future protocol extension.
+
+Example responses:
+
+```text
+get_model_1 -> OK DS18B20
+get_all_1   -> OK model:DS18B20,t:28.06
+get_all_3   -> OK model:BME280,t:26.98,p:100099,h:46.419
+get_t_1     -> OK 28.06
+get_p_1     -> OK 100099
+get_h_1     -> OK 46.419
+```
+
+Temperature is expressed in degrees Celsius, pressure in pascals, and relative
+humidity as a percentage. `get_tmpr` remains available for compatibility and
+returns all recent temperatures in one response.
+
+Possible error responses include:
+
+| Response | Meaning |
+| --- | --- |
+| `ERR invalid_sensor_number` | The index is missing, zero, malformed, or too large |
+| `ERR sensor_not_found` | The requested physical or capability-specific index does not exist |
+| `ERR measurement_unavailable` | The sensor exists, but no valid recent measurement is available |
+| `ERR temperature_unavailable` | No complete result is available for the legacy `get_tmpr` command |
+| `ERR command_too_long` | The command exceeds the receive buffer |
+| `ERR unknown_command` | The command name is not supported |
 
 Example using Netcat, with the device at `192.168.1.10`:
 
 ```console
-$ printf 'get_tmpr\r\n' | nc 192.168.1.10 5005
-OK 23.50 24.06
+$ printf 'get_sensors\r\n' | nc 192.168.1.10 5005
+OK t:4,h:2,p:2,all:4
+$ printf 'get_all_3\r\n' | nc 192.168.1.10 5005
+OK model:BME280,t:26.98,p:100099,h:46.419
 ```
 
 ---

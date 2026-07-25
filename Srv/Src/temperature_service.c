@@ -11,17 +11,24 @@
 #include "bmx680.h"
 
 #define TEMPERATURE_SERVICE_PERIOD_MS 7000U
-#define MAX_REPORTED_DS18B20_DEVICES  2U
 #define MEMORY_REPORT_CYCLES          10U
 
-static int16_t recentDs18b20Temperatures[MAX_REPORTED_DS18B20_DEVICES];
-static uint8_t recentDs18b20Count;
-static BaseType_t recentDs18b20Valid;
+static SensorSnapshot_TypeDef sensorSnapshots[SENSOR_SERVICE_MAX_DEVICES];
+static uint8_t sensorSnapshotCount;
+static BaseType_t bmx280Registered;
+static BaseType_t bmx680Registered;
 
 static void temperatureSensorService_Task(void*);
 static ErrorStatus temperatureSensorService_MeasureDs18b20(int16_t*, uint8_t*);
 static ErrorStatus temperatureSensorService_MeasureBmx280(void);
 static ErrorStatus temperatureSensorService_MeasureBmx680(void);
+static void temperatureSensorService_UpdateSnapshots(
+  const int16_t*,
+  uint8_t,
+  ErrorStatus,
+  ErrorStatus,
+  ErrorStatus
+);
 static void temperatureSensorService_PrintMeasurements(
   const int16_t*,
   uint8_t,
@@ -41,9 +48,13 @@ void TemperatureSensorService_Init(void) {
   if (!FLAG_CHECK(_PREG_, _PR_I2C1_BUS)) {
     if (BMx280_Init(Get_BoschDevice(BMX280_MODEL)) != SUCCESS) {
       FLAG_SET(_PREG_, _PR_BMX280);
+    } else {
+      bmx280Registered = pdTRUE;
     }
     if (BMx680_Init(Get_BoschDevice(BMX680_MODEL)) != SUCCESS) {
       FLAG_SET(_PREG_, _PR_BMX680);
+    } else {
+      bmx680Registered = pdTRUE;
     }
   } else {
     FLAG_SET(_PREG_, _PR_BMX280);
@@ -67,30 +78,66 @@ void TemperatureSensorService_Init(void) {
 
 
 // -------------------------------------------------------------
-ErrorStatus TemperatureSensorService_GetRecentDs18b20(
-  int16_t* temperatures,
-  uint8_t capacity,
-  uint8_t* count
-) {
-  if ((temperatures == NULL) || (count == NULL) || (capacity == 0U)) return (ERROR);
-  *count = 0U;
-
+void TemperatureSensorService_GetCounts(SensorCounts_TypeDef* counts) {
+  if (counts == NULL) return;
+  *counts = (SensorCounts_TypeDef){0};
   taskENTER_CRITICAL();
-  if (recentDs18b20Valid == pdFALSE) {
-    taskEXIT_CRITICAL();
-    return (ERROR);
+  counts->all = sensorSnapshotCount;
+  for (uint8_t i = 0U; i < sensorSnapshotCount; i++) {
+    uint8_t capabilities = sensorSnapshots[i].capabilities;
+    if ((capabilities & SENSOR_CAPABILITY_TEMPERATURE) != 0U) counts->temperature++;
+    if ((capabilities & SENSOR_CAPABILITY_PRESSURE) != 0U) counts->pressure++;
+    if ((capabilities & SENSOR_CAPABILITY_HUMIDITY) != 0U) counts->humidity++;
   }
-
-  uint8_t copyCount = (recentDs18b20Count < capacity)
-    ? recentDs18b20Count
-    : capacity;
-  for (uint8_t i = 0U; i < copyCount; i++) {
-    temperatures[i] = recentDs18b20Temperatures[i];
-  }
-  *count = copyCount;
   taskEXIT_CRITICAL();
+}
 
-  return (copyCount > 0U) ? SUCCESS : ERROR;
+
+
+
+
+// -------------------------------------------------------------
+ErrorStatus TemperatureSensorService_GetSnapshot(
+  uint8_t sensorNumber,
+  SensorSnapshot_TypeDef* snapshot
+) {
+  if ((sensorNumber == 0U) || (snapshot == NULL)) return (ERROR);
+  ErrorStatus status = ERROR;
+  taskENTER_CRITICAL();
+  if (sensorNumber <= sensorSnapshotCount) {
+    *snapshot = sensorSnapshots[sensorNumber - 1U];
+    status = SUCCESS;
+  }
+  taskEXIT_CRITICAL();
+  return (status);
+}
+
+
+
+
+
+// -------------------------------------------------------------
+ErrorStatus TemperatureSensorService_GetByCapability(
+  SensorCapability_TypeDef capability,
+  uint8_t sensorNumber,
+  SensorSnapshot_TypeDef* snapshot
+) {
+  if ((sensorNumber == 0U) || (snapshot == NULL)) return (ERROR);
+  uint8_t match = 0U;
+  ErrorStatus status = ERROR;
+  taskENTER_CRITICAL();
+  for (uint8_t i = 0U; i < sensorSnapshotCount; i++) {
+    if ((sensorSnapshots[i].capabilities & capability) != 0U) {
+      match++;
+      if (match == sensorNumber) {
+        *snapshot = sensorSnapshots[i];
+        status = SUCCESS;
+        break;
+      }
+    }
+  }
+  taskEXIT_CRITICAL();
+  return (status);
 }
 
 
@@ -103,7 +150,7 @@ static void temperatureSensorService_Task(void* parameters) {
   uint8_t memoryReportCounter = 0U;
 
   while (1) {
-    int16_t ds18b20Temperatures[MAX_REPORTED_DS18B20_DEVICES];
+    int16_t ds18b20Temperatures[SENSOR_SERVICE_MAX_DS18B20];
     uint8_t ds18b20Count = 0U;
     ErrorStatus ds18b20Status = temperatureSensorService_MeasureDs18b20(
       ds18b20Temperatures,
@@ -111,6 +158,13 @@ static void temperatureSensorService_Task(void* parameters) {
     );
     ErrorStatus bmx280Status = temperatureSensorService_MeasureBmx280();
     ErrorStatus bmx680Status = temperatureSensorService_MeasureBmx680();
+    temperatureSensorService_UpdateSnapshots(
+      ds18b20Temperatures,
+      ds18b20Count,
+      ds18b20Status,
+      bmx280Status,
+      bmx680Status
+    );
     temperatureSensorService_PrintMeasurements(
       ds18b20Temperatures,
       ds18b20Count,
@@ -138,19 +192,11 @@ static ErrorStatus temperatureSensorService_MeasureDs18b20(
 ) {
   if (DS18B20_MeasureTemperatures(
         temperatures,
-        MAX_REPORTED_DS18B20_DEVICES,
+        SENSOR_SERVICE_MAX_DS18B20,
         count
       ) != SUCCESS) {
     return (ERROR);
   }
-
-  taskENTER_CRITICAL();
-  for (uint8_t i = 0U; i < *count; i++) {
-    recentDs18b20Temperatures[i] = temperatures[i];
-  }
-  recentDs18b20Count = *count;
-  recentDs18b20Valid = pdTRUE;
-  taskEXIT_CRITICAL();
 
   return (SUCCESS);
 }
@@ -175,6 +221,79 @@ static ErrorStatus temperatureSensorService_MeasureBmx680(void) {
 
   BMxX80_TypeDef* device = Get_BoschDevice(BMX680_MODEL);
   return BMx680_Measurement(device);
+}
+
+
+
+
+// -------------------------------------------------------------
+static void temperatureSensorService_UpdateSnapshots(
+  const int16_t* ds18b20Temperatures,
+  uint8_t ds18b20Count,
+  ErrorStatus ds18b20Status,
+  ErrorStatus bmx280Status,
+  ErrorStatus bmx680Status
+) {
+  SensorSnapshot_TypeDef updated[SENSOR_SERVICE_MAX_DEVICES];
+  uint8_t count = 0U;
+
+  if (ds18b20Status == SUCCESS) {
+    for (uint8_t i = 0U;
+         (i < ds18b20Count) && (count < SENSOR_SERVICE_MAX_DEVICES);
+         i++) {
+      updated[count++] = (SensorSnapshot_TypeDef){
+        .model = SENSOR_MODEL_DS18B20,
+        .capabilities = SENSOR_CAPABILITY_TEMPERATURE,
+        .dataValid = pdTRUE,
+        .temperature = ds18b20Temperatures[i]
+      };
+    }
+  } else {
+    taskENTER_CRITICAL();
+    while ((count < sensorSnapshotCount)
+        && (sensorSnapshots[count].model == SENSOR_MODEL_DS18B20)) {
+      updated[count] = sensorSnapshots[count];
+      updated[count].dataValid = pdFALSE;
+      count++;
+    }
+    taskEXIT_CRITICAL();
+  }
+
+  if ((bmx280Registered == pdTRUE) && (count < SENSOR_SERVICE_MAX_DEVICES)) {
+    BMxX80_TypeDef* device = Get_BoschDevice(BMX280_MODEL);
+    uint8_t capabilities = SENSOR_CAPABILITY_TEMPERATURE
+      | SENSOR_CAPABILITY_PRESSURE;
+    if (device->DevID == BME280_ID) capabilities |= SENSOR_CAPABILITY_HUMIDITY;
+    updated[count++] = (SensorSnapshot_TypeDef){
+      .model = (device->DevID == BME280_ID)
+        ? SENSOR_MODEL_BME280
+        : SENSOR_MODEL_BMP280,
+      .capabilities = capabilities,
+      .dataValid = (bmx280Status == SUCCESS) ? pdTRUE : pdFALSE,
+      .temperature = device->Results.temperature,
+      .pressure = device->Results.pressure,
+      .humidity = device->Results.humidity
+    };
+  }
+
+  if ((bmx680Registered == pdTRUE) && (count < SENSOR_SERVICE_MAX_DEVICES)) {
+    BMxX80_TypeDef* device = Get_BoschDevice(BMX680_MODEL);
+    updated[count++] = (SensorSnapshot_TypeDef){
+      .model = SENSOR_MODEL_BME680,
+      .capabilities = SENSOR_CAPABILITY_TEMPERATURE
+        | SENSOR_CAPABILITY_PRESSURE
+        | SENSOR_CAPABILITY_HUMIDITY,
+      .dataValid = (bmx680Status == SUCCESS) ? pdTRUE : pdFALSE,
+      .temperature = device->Results.temperature,
+      .pressure = device->Results.pressure,
+      .humidity = device->Results.humidity
+    };
+  }
+
+  taskENTER_CRITICAL();
+  for (uint8_t i = 0U; i < count; i++) sensorSnapshots[i] = updated[i];
+  sensorSnapshotCount = count;
+  taskEXIT_CRITICAL();
 }
 
 
