@@ -22,6 +22,16 @@
 #endif
 
 #define DSPL_OUT(ch) putc_dspl_wh(ch)
+#elif defined(USE_SSD_DISPLAY)
+#ifndef SSD_DSPL_MODEL
+#define SSD_DSPL_MODEL SSD1315_MODEL
+#endif
+
+#ifndef SSD_DSPL_FONT
+#define SSD_DSPL_FONT SSD13XX_FONT_5X7
+#endif
+
+#define DSPL_OUT(ch) putc_dspl_ssd(ch)
 #else
 #define DSPL_OUT(ch) ((void)(ch))
 #endif

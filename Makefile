@@ -27,6 +27,7 @@ ARCH := $(shell uname -m)
 SYS := $(shell uname -s)
 # output
 OUTPUT = 1
+DISPLAY = WH
 
 #######################################
 # paths
@@ -147,7 +148,11 @@ ASFLAGS += $(DEBUGFLAGS)
 endif
 
 ifeq ($(OUTPUT), 1)
+ifeq ($(DISPLAY), SSD)
+OUTPUTFLAGS = -DUSE_SSD_DISPLAY
+else
 OUTPUTFLAGS = -DUSE_WH_DISPLAY
+endif
 ifeq ($(SYS), Darwin)
 OUTPUTFLAGS += -DITM_OUT=0 
 else ifeq ($(SYS), Linux)

@@ -43,6 +43,7 @@ extern "C" {
 #include "spi.h"
 #include "i2c.h"
 #include "whxxxx.h"
+#include "ssd13xx.h"
 #include "bmx280.h"
 #include "bmx680.h"
 
@@ -68,6 +69,7 @@ extern __IO uint32_t _PREG_;
 #define _PR_WH_DISPLAY        5
 #define _PR_BMX280            6
 #define _PR_BMX680            7
+#define _PR_SSD_DISPLAY       8
 
 /* Exported functions prototypes ---------------------------------------------*/
 
