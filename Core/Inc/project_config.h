@@ -18,7 +18,7 @@
  * Use 2 for the normal WH1602/WH2004 controller configuration.
  */
 #ifndef WH_DSPL_LINE_MODE
-#define WH_DSPL_LINE_MODE 2
+#define WH_DSPL_LINE_MODE 1
 #endif
 
 #define DSPL_OUT(ch) putc_dspl_wh(ch)
