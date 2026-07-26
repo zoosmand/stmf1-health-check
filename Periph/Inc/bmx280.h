@@ -1,7 +1,13 @@
 /**
   ******************************************************************************
   * @file           : bmx280.h
-  * @brief          : Bosch BMP280/BME280 sensor interface.
+  * @brief          : Bosch BMP280 and BME280 sensor interface.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 10:05:16 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -37,6 +43,6 @@
 #define BMX280_FORCE_MODE            0x01U
 
 ErrorStatus BMx280_Init(BMxX80_TypeDef*);
-ErrorStatus BMx280_Measurement(BMxX80_TypeDef*);
+ErrorStatus BMx280_Measure(BMxX80_TypeDef*);
 
 #endif /* __BMX280_H */

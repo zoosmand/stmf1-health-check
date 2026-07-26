@@ -2,6 +2,12 @@
   ******************************************************************************
   * @file           : tcp_service.h
   * @brief          : TCP command service interface.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 01:34:04 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -18,7 +24,9 @@ extern "C" {
 void TcpCommandService_Init(void);
 
 /**
-  * @brief Advances the non-blocking TCP command server state machine.
+  * @brief Advance the non-blocking measurement TCP server state machine.
+  *
+  * This function is called by the TCP service task and operates on port 5005.
   */
 void TcpCommandService_Run(void);
 

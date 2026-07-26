@@ -1,11 +1,13 @@
 /**
   ******************************************************************************
   * @file           : common.h
-  * @brief          : Header for common.c file.
-  *                   This file contains the common defines of the application.
+  * @brief          : Common application definitions and low-level helper declarations.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 20.09.2025 08:34:08 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -151,19 +153,57 @@
 #define PIN_H(port, pinSource)                                  SET_PERIPH_BB_VAL((uint32_t)port, GPIO_BSRR_Offset, pinSource, 1)
 #define PIN_L(port, pinSource)                                  SET_PERIPH_BB_VAL((uint32_t)port, GPIO_BSRR_Offset, (pinSource + 16U), 1)
 // #define PIN_LEVEL(port, pinSource)                              (GET_PERIPH_BB_VAL((uint32_t)port, GPIO_IDR_Offset, pinSource))
-#define PIN_LEVEL(port, pinSource)                               (Get_BitBandVal(GET_PERIPH_BB_ADDR((uint32_t)port, GPIO_IDR_Offset, pinSource)))
+#define PIN_LEVEL(port, pinSource)                               (BitBand_GetValue(GET_PERIPH_BB_ADDR((uint32_t)port, GPIO_IDR_Offset, pinSource)))
 
 #define PREG_SET(registry, key)                                 SET_PERIPH_BB_VAL((uint32_t)&registry, 0, key, 1)
 #define PREG_CLR(registry, key)                                 SET_PERIPH_BB_VAL((uint32_t)&registry, 0, key, 0)
 // #define PREG_CHECK(registry, key)                               (GET_PERIPH_BB_VAL((uint32_t)&registry, 0, key))
-#define PREG_CHECK(registry, key)                               (Get_BitBandVal(GET_PERIPH_BB_ADDR((uint32_t)&registry, 0, key)))
+#define PREG_CHECK(registry, key)                               (BitBand_GetValue(GET_PERIPH_BB_ADDR((uint32_t)&registry, 0, key)))
 
 
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-void __attribute__((weak)) Error_Handler(void);
-int __attribute__((weak)) putc_dspl(char);
+
+/**
+  * @brief Handle an unrecoverable system error.
+  *
+  * The default weak implementation stops execution. Applications may provide
+  * a strong implementation to report the failure or reset the system.
+  */
+void System_ErrorHandler(void);
+
+/**
+  * @brief Write a value through a Cortex-M3 bit-band alias address.
+  * @param aliasAddress (uint32_t) Bit-band alias address to write.
+  * @param value (uint32_t) Bit value to store; normally zero or one.
+  */
+void BitBand_SetValue(uint32_t aliasAddress, uint32_t value);
+
+/**
+  * @brief Read a value through a Cortex-M3 bit-band alias address.
+  * @param aliasAddress (uint32_t) Bit-band alias address to read.
+  * @retval (uint32_t) Current value of the aliased bit.
+  */
+uint32_t BitBand_GetValue(uint32_t aliasAddress);
+
+/**
+  * @brief Delay execution using the Cortex-M3 cycle counter.
+  * @param microseconds (uint32_t) Delay duration in microseconds.
+  *
+  * This function performs a blocking busy wait and must not be called before
+  * the core cycle counter and SystemCoreClock are initialized.
+  */
+void Delay_Microseconds(uint32_t microseconds);
+
+/**
+  * @brief Delay execution using a blocking microsecond delay.
+  * @param milliseconds (uint32_t) Delay duration in milliseconds.
+  *
+  * This function is intended for peripheral initialization and short hardware
+  * timing intervals. FreeRTOS tasks should prefer vTaskDelay for long waits.
+  */
+void Delay_Milliseconds(uint32_t milliseconds);
 
 
 

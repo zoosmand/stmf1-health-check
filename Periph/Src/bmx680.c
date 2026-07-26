@@ -2,6 +2,12 @@
   ******************************************************************************
   * @file           : bmx680.c
   * @brief          : Bosch BME680 sensor implementation.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 10:05:16 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -21,57 +27,57 @@ static uint32_t bmx680_CompensateHumidity(BMxX80_TypeDef*);
 
 // -------------------------------------------------------------
 ErrorStatus BMx680_Init(BMxX80_TypeDef* dev) {
-  if ((dev == NULL) || (dev->I2Cx == NULL) || (dev->RawBufPtr == NULL)
-      || (dev->CalibPtr == NULL) || (dev->Lock != DISABLE)) {
+  if ((dev == NULL) || (dev->i2c == NULL) || (dev->rawBuffer == NULL)
+      || (dev->calibration == NULL) || (dev->lock != DISABLE)) {
     return (ERROR);
   }
-  dev->Lock = ENABLE;
+  dev->lock = ENABLE;
   ErrorStatus status = ERROR;
 
   if (bmx680_Receive(dev, BMX680_DEV_ID, 1U) != SUCCESS) goto done;
-  dev->DevID = dev->RawBufPtr[0];
-  if (dev->DevID != BME680_ID) goto done;
+  dev->deviceId = dev->rawBuffer[0];
+  if (dev->deviceId != BME680_ID) goto done;
   if (bmx680_Receive(dev, BMXX80_UNIQUE_ID_REG, 4U) != SUCCESS) goto done;
-  dev->UniqueID = (
-      ((((uint32_t)dev->RawBufPtr[3]
-        + ((uint32_t)dev->RawBufPtr[2] << 8)) & 0x7FFFU) << 16)
-    | ((uint32_t)dev->RawBufPtr[1] << 8)
-    | (uint32_t)dev->RawBufPtr[0]
+  dev->uniqueId = (
+      ((((uint32_t)dev->rawBuffer[3]
+        + ((uint32_t)dev->rawBuffer[2] << 8)) & 0x7FFFU) << 16)
+    | ((uint32_t)dev->rawBuffer[1] << 8)
+    | (uint32_t)dev->rawBuffer[0]
   );
 
-  BMx680_calib_t* calib = (BMx680_calib_t*)dev->CalibPtr;
+  BMx680_Calibration_TypeDef* calib = (BMx680_Calibration_TypeDef*)dev->calibration;
   if (bmx680_Receive(dev, BMX680_CALIB1, 24U) != SUCCESS) goto done;
-  calib->par_t2 = (int16_t)((dev->RawBufPtr[1] << 8) | dev->RawBufPtr[0]);
-  calib->par_t3 = (int8_t)dev->RawBufPtr[2];
-  calib->par_p1 = (uint16_t)((dev->RawBufPtr[5] << 8) | dev->RawBufPtr[4]);
-  calib->par_p2 = (int16_t)((dev->RawBufPtr[7] << 8) | dev->RawBufPtr[6]);
-  calib->par_p3 = (int8_t)dev->RawBufPtr[8];
-  calib->par_p4 = (int16_t)((dev->RawBufPtr[11] << 8) | dev->RawBufPtr[10]);
-  calib->par_p5 = (int16_t)((dev->RawBufPtr[13] << 8) | dev->RawBufPtr[12]);
-  calib->par_p6 = (int8_t)dev->RawBufPtr[15];
-  calib->par_p7 = (int8_t)dev->RawBufPtr[14];
-  calib->par_p8 = (int16_t)((dev->RawBufPtr[19] << 8) | dev->RawBufPtr[18]);
-  calib->par_p9 = (int16_t)((dev->RawBufPtr[21] << 8) | dev->RawBufPtr[20]);
-  calib->par_p10 = dev->RawBufPtr[22];
+  calib->par_t2 = (int16_t)((dev->rawBuffer[1] << 8) | dev->rawBuffer[0]);
+  calib->par_t3 = (int8_t)dev->rawBuffer[2];
+  calib->par_p1 = (uint16_t)((dev->rawBuffer[5] << 8) | dev->rawBuffer[4]);
+  calib->par_p2 = (int16_t)((dev->rawBuffer[7] << 8) | dev->rawBuffer[6]);
+  calib->par_p3 = (int8_t)dev->rawBuffer[8];
+  calib->par_p4 = (int16_t)((dev->rawBuffer[11] << 8) | dev->rawBuffer[10]);
+  calib->par_p5 = (int16_t)((dev->rawBuffer[13] << 8) | dev->rawBuffer[12]);
+  calib->par_p6 = (int8_t)dev->rawBuffer[15];
+  calib->par_p7 = (int8_t)dev->rawBuffer[14];
+  calib->par_p8 = (int16_t)((dev->rawBuffer[19] << 8) | dev->rawBuffer[18]);
+  calib->par_p9 = (int16_t)((dev->rawBuffer[21] << 8) | dev->rawBuffer[20]);
+  calib->par_p10 = dev->rawBuffer[22];
   if (calib->par_p1 == 0U) goto done;
 
   if (bmx680_Receive(dev, BMX680_CALIB2, 16U) != SUCCESS) goto done;
-  calib->par_h1 = (uint16_t)((dev->RawBufPtr[2] << 4) | (dev->RawBufPtr[1] & 0x0FU));
-  calib->par_h2 = (uint16_t)((dev->RawBufPtr[0] << 4) | (dev->RawBufPtr[1] >> 4));
-  calib->par_h3 = (int8_t)dev->RawBufPtr[3];
-  calib->par_h4 = (int8_t)dev->RawBufPtr[4];
-  calib->par_h5 = (int8_t)dev->RawBufPtr[5];
-  calib->par_h6 = dev->RawBufPtr[6];
-  calib->par_h7 = (int8_t)dev->RawBufPtr[7];
-  calib->par_t1 = (uint16_t)((dev->RawBufPtr[9] << 8) | dev->RawBufPtr[8]);
-  calib->par_g1 = (int8_t)dev->RawBufPtr[12];
-  calib->par_g2 = (int16_t)((dev->RawBufPtr[11] << 8) | dev->RawBufPtr[10]);
-  calib->par_g3 = (int8_t)dev->RawBufPtr[13];
+  calib->par_h1 = (uint16_t)((dev->rawBuffer[2] << 4) | (dev->rawBuffer[1] & 0x0FU));
+  calib->par_h2 = (uint16_t)((dev->rawBuffer[0] << 4) | (dev->rawBuffer[1] >> 4));
+  calib->par_h3 = (int8_t)dev->rawBuffer[3];
+  calib->par_h4 = (int8_t)dev->rawBuffer[4];
+  calib->par_h5 = (int8_t)dev->rawBuffer[5];
+  calib->par_h6 = dev->rawBuffer[6];
+  calib->par_h7 = (int8_t)dev->rawBuffer[7];
+  calib->par_t1 = (uint16_t)((dev->rawBuffer[9] << 8) | dev->rawBuffer[8]);
+  calib->par_g1 = (int8_t)dev->rawBuffer[12];
+  calib->par_g2 = (int16_t)((dev->rawBuffer[11] << 8) | dev->rawBuffer[10]);
+  calib->par_g3 = (int8_t)dev->rawBuffer[13];
 
   status = SUCCESS;
 
 done:
-  dev->Lock = DISABLE;
+  dev->lock = DISABLE;
   return (status);
 }
 
@@ -79,9 +85,9 @@ done:
 
 
 // -------------------------------------------------------------
-ErrorStatus BMx680_Measurement(BMxX80_TypeDef* dev) {
-  if ((dev == NULL) || (dev->Lock != DISABLE)) return (ERROR);
-  dev->Lock = ENABLE;
+ErrorStatus BMx680_Measure(BMxX80_TypeDef* dev) {
+  if ((dev == NULL) || (dev->lock != DISABLE)) return (ERROR);
+  dev->lock = ENABLE;
   ErrorStatus status = ERROR;
 
   if (bmx680_Send(dev, BMX680_CTRL_HUM, BMX680_HUMIDITY_OVS_4) != SUCCESS) {
@@ -95,33 +101,33 @@ ErrorStatus BMx680_Measurement(BMxX80_TypeDef* dev) {
 
   uint16_t timeout = 250U;
   do {
-    _delay_ms(1U);
+    Delay_Milliseconds(1U);
     if (bmx680_Receive(dev, BMX680_STATUS, 1U) != SUCCESS) goto done;
-    if ((dev->RawBufPtr[0] & BMX680_MEASURING) == 0U) break;
+    if ((dev->rawBuffer[0] & BMX680_MEASURING) == 0U) break;
   } while (--timeout != 0U);
   if (timeout == 0U) goto done;
 
   if (bmx680_Receive(dev, BMX680_DATA, 8U) != SUCCESS) goto done;
   uint32_t rawPressure = (
-      ((uint32_t)dev->RawBufPtr[0] << 12)
-    | ((uint32_t)dev->RawBufPtr[1] << 4)
-    | ((uint32_t)dev->RawBufPtr[2] >> 4)
+      ((uint32_t)dev->rawBuffer[0] << 12)
+    | ((uint32_t)dev->rawBuffer[1] << 4)
+    | ((uint32_t)dev->rawBuffer[2] >> 4)
   );
   uint32_t rawTemperature = (
-      ((uint32_t)dev->RawBufPtr[3] << 12)
-    | ((uint32_t)dev->RawBufPtr[4] << 4)
-    | ((uint32_t)dev->RawBufPtr[5] >> 4)
+      ((uint32_t)dev->rawBuffer[3] << 12)
+    | ((uint32_t)dev->rawBuffer[4] << 4)
+    | ((uint32_t)dev->rawBuffer[5] >> 4)
   );
   if ((rawPressure == 0x80000U) || (rawTemperature == 0x80000U)) goto done;
 
   bmx680_CompensateTemperature(dev);
-  dev->Results.pressure = bmx680_CompensatePressure(dev);
-  dev->Results.humidity = bmx680_CompensateHumidity(dev);
+  dev->results.pressure = bmx680_CompensatePressure(dev);
+  dev->results.humidity = bmx680_CompensateHumidity(dev);
 
   status = SUCCESS;
 
 done:
-  dev->Lock = DISABLE;
+  dev->lock = DISABLE;
   return (status);
 }
 
@@ -131,7 +137,7 @@ done:
 // -------------------------------------------------------------
 static ErrorStatus bmx680_Send(BMxX80_TypeDef* dev, uint8_t reg, uint8_t value) {
   uint8_t buffer[2] = {reg, value};
-  return I2C_Master_Send(dev->I2Cx, dev->I2C_Address, buffer, sizeof(buffer));
+  return I2C_Master_Send(dev->i2c, dev->i2cAddress, buffer, sizeof(buffer));
 }
 
 
@@ -140,10 +146,10 @@ static ErrorStatus bmx680_Send(BMxX80_TypeDef* dev, uint8_t reg, uint8_t value) 
 // -------------------------------------------------------------
 static ErrorStatus bmx680_Receive(BMxX80_TypeDef* dev, uint8_t reg, uint8_t length) {
   return I2C_Master_ReadRegister(
-    dev->I2Cx,
-    dev->I2C_Address,
+    dev->i2c,
+    dev->i2cAddress,
     reg,
-    dev->RawBufPtr,
+    dev->rawBuffer,
     length
   );
 }
@@ -154,17 +160,17 @@ static ErrorStatus bmx680_Receive(BMxX80_TypeDef* dev, uint8_t reg, uint8_t leng
 // -------------------------------------------------------------
 static void bmx680_CompensateTemperature(BMxX80_TypeDef* dev) {
   uint32_t adcTemperature = (
-      ((uint32_t)dev->RawBufPtr[3] << 12)
-    | ((uint32_t)dev->RawBufPtr[4] << 4)
-    | ((uint32_t)dev->RawBufPtr[5] >> 4)
+      ((uint32_t)dev->rawBuffer[3] << 12)
+    | ((uint32_t)dev->rawBuffer[4] << 4)
+    | ((uint32_t)dev->rawBuffer[5] >> 4)
   );
-  BMx680_calib_t* calib = (BMx680_calib_t*)dev->CalibPtr;
+  BMx680_Calibration_TypeDef* calib = (BMx680_Calibration_TypeDef*)dev->calibration;
   int32_t var1 = ((int32_t)(adcTemperature >> 3) - ((int32_t)calib->par_t1 << 1));
   int32_t var2 = (var1 * calib->par_t2) >> 11;
   int32_t var3 = ((((var1 >> 1) * (var1 >> 1)) >> 12)
                   * ((int32_t)calib->par_t3 << 4)) >> 14;
   tFine = var2 + var3;
-  dev->Results.temperature = (tFine * 5 + 128) >> 8;
+  dev->results.temperature = (tFine * 5 + 128) >> 8;
 }
 
 
@@ -173,11 +179,11 @@ static void bmx680_CompensateTemperature(BMxX80_TypeDef* dev) {
 // -------------------------------------------------------------
 static uint32_t bmx680_CompensatePressure(BMxX80_TypeDef* dev) {
   uint32_t adcPressure = (
-      ((uint32_t)dev->RawBufPtr[0] << 12)
-    | ((uint32_t)dev->RawBufPtr[1] << 4)
-    | ((uint32_t)dev->RawBufPtr[2] >> 4)
+      ((uint32_t)dev->rawBuffer[0] << 12)
+    | ((uint32_t)dev->rawBuffer[1] << 4)
+    | ((uint32_t)dev->rawBuffer[2] >> 4)
   );
-  BMx680_calib_t* calib = (BMx680_calib_t*)dev->CalibPtr;
+  BMx680_Calibration_TypeDef* calib = (BMx680_Calibration_TypeDef*)dev->calibration;
   int32_t var1 = (tFine >> 1) - 64000;
   int32_t var2 = (((((var1 >> 2) * (var1 >> 2)) >> 11) * calib->par_p6) >> 2);
   var2 += (var1 * calib->par_p5) << 1;
@@ -213,9 +219,9 @@ static uint32_t bmx680_CompensatePressure(BMxX80_TypeDef* dev) {
 // -------------------------------------------------------------
 static uint32_t bmx680_CompensateHumidity(BMxX80_TypeDef* dev) {
   uint16_t adcHumidity = (uint16_t)(
-    ((uint16_t)dev->RawBufPtr[6] << 8) | dev->RawBufPtr[7]
+    ((uint16_t)dev->rawBuffer[6] << 8) | dev->rawBuffer[7]
   );
-  BMx680_calib_t* calib = (BMx680_calib_t*)dev->CalibPtr;
+  BMx680_Calibration_TypeDef* calib = (BMx680_Calibration_TypeDef*)dev->calibration;
   int32_t temperature = ((tFine * 5) + 128) >> 8;
   int32_t var1 = (int32_t)adcHumidity - ((int32_t)calib->par_h1 * 16)
     - (((temperature * calib->par_h3) / 100) >> 1);

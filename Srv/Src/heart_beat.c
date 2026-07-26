@@ -1,11 +1,13 @@
 /**
   ******************************************************************************
   * @file           : heart_beat.c
-  *                   This file contains the LED blinking code that represent 
-  *                   the system health.
+  * @brief          : Heartbeat LED service implementation.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 22.09.2025 04:30:00 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -35,7 +37,7 @@ static void heartBeat_Blink(GPIO_TypeDef*, uint16_t, void (*)(TickType_t), TickT
 
 /*******************************************************************************/
 
-void HeartBeatService(void) {
+void HeartBeatService_Init(void) {
 
   static StaticTask_t heartBeatTaskTCB;
   static StackType_t heartBeatTaskStack[configMINIMAL_STACK_SIZE];

@@ -1,7 +1,13 @@
 /**
   ******************************************************************************
   * @file           : tcp_service.c
-  * @brief          : TCP command service on port 5005.
+  * @brief          : TCP measurement and sensor-information services.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 01:34:04 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -302,6 +308,7 @@ static void tcpCommandService_ProcessCommand(const uint8_t* command, uint16_t le
   char response[TCP_RESPONSE_SIZE];
   size_t used = 0U;
 
+  /** @brief Measurement command selected from the received TCP prefix. */
   typedef enum {
     TCP_SENSOR_COMMAND_NONE = 0U,
     TCP_SENSOR_COMMAND_ALL,
@@ -442,6 +449,7 @@ static void tcpHealthService_ProcessCommand(
     return;
   }
 
+  /** @brief Information command selected from the received TCP prefix. */
   typedef enum {
     TCP_INFO_COMMAND_NONE = 0U,
     TCP_INFO_COMMAND_MODEL,

@@ -2,6 +2,12 @@
   ******************************************************************************
   * @file           : whxxxx.h
   * @brief          : WHxxxx character display interface over I2C.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 04:51:32 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -14,12 +20,12 @@ extern "C" {
 
 #include "main.h"
 
-#define WHxxxx_I2C_ADDR 0x27U
+#define WHXXXX_I2C_ADDRESS 0x27U
 
 ErrorStatus WHxxxx_Init(I2C_TypeDef*, uint8_t);
 ErrorStatus WHxxxx_Clear(void);
 ErrorStatus WHxxxx_Print(const uint8_t*, uint16_t);
-int putc_dspl_wh(char);
+int WHxxxx_PutChar(char);
 
 #ifdef __cplusplus
 }

@@ -1,12 +1,13 @@
 /**
   ******************************************************************************
   * @file           : gpio.h
-  * @brief          : Header for gpio.c file.
-  *                   This file contains the common defines for the GPIO
-  *                   initialization functions.
+  * @brief          : GPIO initialization interface.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 22.09.2025 02:40:44 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -60,7 +61,7 @@ ErrorStatus OneWire_Init(GPIO_TypeDef*, uint16_t);
   * @param  pin:  pin number (0..15)
   * @retval (int) Status of operation (0 = success)
   */
-ErrorStatus EthSPI_Init(GPIO_TypeDef*, uint16_t);
+ErrorStatus EthernetSPI_Init(GPIO_TypeDef*, uint16_t);
 
 
 #ifdef __cplusplus

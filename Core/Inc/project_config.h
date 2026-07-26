@@ -2,6 +2,12 @@
   ******************************************************************************
   * @file           : project_config.h
   * @brief          : Build-time feature selection and implementation mapping.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 04:51:32 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -21,7 +27,7 @@
 #define WH_DSPL_LINE_MODE 1
 #endif
 
-#define DSPL_OUT(ch) putc_dspl_wh(ch)
+#define DSPL_OUT(ch) WHxxxx_PutChar(ch)
 #elif defined(USE_SSD_DISPLAY)
 #ifndef SSD_DSPL_MODEL
 #define SSD_DSPL_MODEL SSD1315_MODEL
@@ -31,7 +37,7 @@
 #define SSD_DSPL_FONT SSD13XX_FONT_5X7
 #endif
 
-#define DSPL_OUT(ch) putc_dspl_ssd(ch)
+#define DSPL_OUT(ch) SSD13xx_PutChar(ch)
 #else
 #define DSPL_OUT(ch) ((void)(ch))
 #endif

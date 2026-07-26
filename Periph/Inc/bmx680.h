@@ -2,6 +2,12 @@
   ******************************************************************************
   * @file           : bmx680.h
   * @brief          : Bosch BME680 sensor interface.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 10:05:16 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -29,6 +35,6 @@
 #define BMX680_FORCED_MODE           0x01U
 
 ErrorStatus BMx680_Init(BMxX80_TypeDef*);
-ErrorStatus BMx680_Measurement(BMxX80_TypeDef*);
+ErrorStatus BMx680_Measure(BMxX80_TypeDef*);
 
 #endif /* __BMX680_H */
