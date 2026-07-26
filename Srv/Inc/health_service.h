@@ -43,11 +43,11 @@ void HealthService_Register(HealthComponent_TypeDef);
 void HealthService_Report(HealthComponent_TypeDef);
 
 /**
-  * @brief Latch an emergency condition and stop reloading the watchdog.
+  * @brief Latch a system failure and stop reloading the watchdog.
   *
   * The IWDG timeout is nominally 2.4 seconds. The recovery target remains
   * within four seconds after allowing for the uncalibrated LSI tolerance.
   */
-void System_Error(void);
+void HealthService_LatchFailure(void);
 
 #endif /* __HEALTH_SERVICE_H */

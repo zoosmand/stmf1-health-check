@@ -67,7 +67,7 @@ void HealthService_Report(HealthComponent_TypeDef component) {
 
 
 // -------------------------------------------------------------
-void System_Error(void) {
+void HealthService_LatchFailure(void) {
   emergencyLatched = pdTRUE;
 }
 
@@ -101,7 +101,7 @@ static void healthService_Task(void* parameters) {
           "Self-check: FAILED, missing:0x%08lx\n",
           (unsigned long)(expected & ~observed)
         );
-        System_Error();
+        HealthService_LatchFailure();
       } else {
         printf("Self-check: OK\n");
       }

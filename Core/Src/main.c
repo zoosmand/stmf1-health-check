@@ -100,7 +100,7 @@ int main(void) {
          * or pxCurrentTCB if pcTaskName has itself been corrupted. */
         (void) xTask;
         (void) pcTaskName;
-        System_Error();
+        HealthService_LatchFailure();
         taskDISABLE_INTERRUPTS();
         while (1);
     }
