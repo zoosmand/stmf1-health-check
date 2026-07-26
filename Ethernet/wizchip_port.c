@@ -31,10 +31,10 @@ wiz_NetInfo netInfo = {
 
 /*************************************************   NO Changes After This   ***************************************************************/
 
-#define W5500_CS_LOW()     PIN_L(ETH_CS_Port, ETH_CS_Pin);
-#define W5500_CS_HIGH()    PIN_H(ETH_CS_Port, ETH_CS_Pin);
-#define W5500_RST_LOW()    PIN_L(ETH_RST_Port, ETH_RST_Pin);
-#define W5500_RST_HIGH()   PIN_H(ETH_RST_Port, ETH_RST_Pin);
+#define W5500_CS_LOW()     PIN_L(ETH_CS_PORT, ETH_CS_PIN);
+#define W5500_CS_HIGH()    PIN_H(ETH_CS_PORT, ETH_CS_PIN);
+#define W5500_RST_LOW()    PIN_L(ETH_RST_PORT, ETH_RST_PIN);
+#define W5500_RST_HIGH()   PIN_H(ETH_RST_PORT, ETH_RST_PIN);
 
 
 // SPI transmit/receive
@@ -44,13 +44,13 @@ void W5500_Unselect(void) { W5500_CS_HIGH(); }
 uint8_t W5500_ReadByte(void)
 {
     uint8_t rx;
-    SPI_Read_8b(SPI1, &rx, 1);
+    SPI_Read8(SPI1, &rx, 1);
     return rx;
 }
 
 void W5500_WriteByte(uint8_t byte)
 {
-    SPI_Write_8b(SPI1, &byte, 1);
+    SPI_Write8(SPI1, &byte, 1);
 }
 
 
@@ -83,9 +83,9 @@ int W5500_Init(void)
     /***** Reset Sequence  *****/
     W5500_RST_LOW();
     // HAL_Delay(50);
-    _delay_ms(50);
+    Delay_Milliseconds(50);
     W5500_RST_HIGH();
-    _delay_ms(200);
+    Delay_Milliseconds(200);
     // HAL_Delay(200);
 
     /***** Register callbacks  *****/
@@ -116,7 +116,7 @@ int W5500_Init(void)
         else printf("Link: DOWN Retrying : %d\r\n", 10-retries);
         retries--;
         // HAL_Delay(500);
-        _delay_ms(500);
+        Delay_Milliseconds(500);
     }
     if (link != PHY_LINK_ON){
     	printf ("Link is Down,please reconnect and retry\nExiting Setup..\r\n");
@@ -135,7 +135,7 @@ int W5500_Init(void)
     while((!ip_assigned) && (retries > 0)) {
         DHCP_run();
         // HAL_Delay(500);
-        _delay_ms(500);
+        Delay_Milliseconds(500);
         retries--;
     }
     if(!ip_assigned) {
@@ -163,7 +163,7 @@ int W5500_Init(void)
 
     /***** Configure DNS  *****/
     // HAL_Delay(500);
-    _delay_ms(500);
+    Delay_Milliseconds(500);
     printf("Configuring DNS..\r\n");
     DNS_init(DNS_SOCKET, DNS_buffer);
 

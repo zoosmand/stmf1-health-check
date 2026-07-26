@@ -1,11 +1,13 @@
 /**
   ******************************************************************************
   * @file           : ds18b20.c
-  *                   This file contains OneWire DS18B20 temperature sensor
-  *                   code. 
+  * @brief          : DS18B20 temperature sensor implementation.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 22.09.2025 04:30:00 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -30,7 +32,7 @@ static DS18B20_Status_TypeDef dS18B20_ConvertTemperature(uint8_t*);
 static ErrorStatus dS18B20_WaitStatus(uint16_t);
 
 static DS18B20_Status_TypeDef DS18B20_GetTemperatureMeasurement(
-  OneWireDevice_t*
+  OneWireDevice_TypeDef*
 );
 
 static int16_t dS18B20_DecodeTemperature(const uint8_t*);
@@ -54,12 +56,12 @@ ErrorStatus DS18B20_Measure(
     return (ERROR);
   }
 
-  OneWireDevice_t* devices = Get_OwDevices();
+  OneWireDevice_TypeDef* devices = OneWire_GetDevices();
   for (uint8_t i = 0; i < readCount; i++) {
-    memcpy(measurements[i].rom, devices[i].addr, sizeof(measurements[i].rom));
+    memcpy(measurements[i].rom, devices[i].rom, sizeof(measurements[i].rom));
     measurements[i].status = DS18B20_GetTemperatureMeasurement(&devices[i]);
     if (measurements[i].status == DS18B20_STATUS_OK) {
-      measurements[i].temperature = dS18B20_DecodeTemperature(devices[i].spad);
+      measurements[i].temperature = dS18B20_DecodeTemperature(devices[i].scratchpad);
     } else {
       measurements[i].temperature = 0;
     }
@@ -96,7 +98,7 @@ static DS18B20_Status_TypeDef dS18B20_ReadScratchpad(
 ) {
 
   if (OneWire_MatchROM(addr)) return (DS18B20_STATUS_BUS);
-  dS18B20_Command(ReadScratchpad);
+  dS18B20_Command(DS18B20_COMMAND_READ_SCRATCHPAD);
 
   uint8_t crc = 0;
   for (int8_t i = 0; i < 9; i++) {
@@ -120,7 +122,7 @@ static DS18B20_Status_TypeDef dS18B20_ConvertTemperature(uint8_t* addr) {
     uint8_t pps = OneWire_ReadPowerSupply(addr);
     
     if (OneWire_MatchROM(addr)) return (DS18B20_STATUS_BUS);
-    dS18B20_Command(ConvertT);
+    dS18B20_Command(DS18B20_COMMAND_CONVERT_T);
     
     if (pps) {
       OneWire_StrongPullupEnable();
@@ -134,8 +136,8 @@ static DS18B20_Status_TypeDef dS18B20_ConvertTemperature(uint8_t* addr) {
   } else {
     if (OneWire_Reset()) return (DS18B20_STATUS_BUS);
     
-    dS18B20_Command(SkipROM);
-    dS18B20_Command(ConvertT);
+    dS18B20_Command(ONEWIRE_COMMAND_SKIP_ROM);
+    dS18B20_Command(DS18B20_COMMAND_CONVERT_T);
     if (dS18B20_WaitStatus(DS18B20_CONVERSION_TIMEOUT_MS) != SUCCESS) {
       return (DS18B20_STATUS_TIMEOUT);
     }
@@ -163,10 +165,10 @@ static ErrorStatus dS18B20_WaitStatus(uint16_t timeoutMs) {
 // -------------------------------------------------------------  
 // -------------------------------------------------------------  
 static DS18B20_Status_TypeDef DS18B20_GetTemperatureMeasurement(
-  OneWireDevice_t* dev
+  OneWireDevice_TypeDef* dev
 ) {
-  DS18B20_Status_TypeDef status = dS18B20_ConvertTemperature(dev->addr);
+  DS18B20_Status_TypeDef status = dS18B20_ConvertTemperature(dev->rom);
   if (status != DS18B20_STATUS_OK) return (status);
 
-  return dS18B20_ReadScratchpad(dev->spad, dev->addr);
+  return dS18B20_ReadScratchpad(dev->scratchpad, dev->rom);
 }

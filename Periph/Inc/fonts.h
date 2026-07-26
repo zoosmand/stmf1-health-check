@@ -2,6 +2,12 @@
   ******************************************************************************
   * @file           : fonts.h
   * @brief          : Bitmap font definitions for graphical displays.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 25.07.2026 03:58:46 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 

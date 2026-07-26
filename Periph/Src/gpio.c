@@ -1,11 +1,13 @@
 /**
   ******************************************************************************
-  * @file           : led.c
-  * @brief          : This file contains the common defines for the GPIO
-  *                   initialization functions. 
+  * @file           : gpio.c
+  * @brief          : GPIO initialization implementation.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 22.09.2025 02:40:44 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -55,7 +57,7 @@ ErrorStatus OneWire_Init(GPIO_TypeDef *port, uint16_t pin) {
 
 
 
-ErrorStatus EthSPI_Init(GPIO_TypeDef *port, uint16_t pin) {
+ErrorStatus EthernetSPI_Init(GPIO_TypeDef *port, uint16_t pin) {
     uint32_t shift;
     #define SPI_ETH_PP_50MHZ (GPIO_IOS_50 | GPIO_GPO_PP)
 

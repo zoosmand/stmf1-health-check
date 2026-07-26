@@ -1,7 +1,13 @@
 /**
   ******************************************************************************
   * @file           : whxxxx.c
-  * @brief          : WHxxxx character display interface over an I2C backpack.
+  * @brief          : WHxxxx character display implementation.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 04:51:32 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -80,20 +86,20 @@ ErrorStatus WHxxxx_Init(I2C_TypeDef* i2c, uint8_t address) {
   displayMutex = xSemaphoreCreateMutexStatic(&displayMutexBuffer);
   if (displayMutex == NULL) return (ERROR);
 
-  _delay_ms(40U);
+  Delay_Milliseconds(40U);
   if (whxxxx_WriteNibble(0x30U, 0U) != SUCCESS) return (ERROR);
-  _delay_us(4100U);
+  Delay_Microseconds(4100U);
   if (whxxxx_WriteNibble(0x30U, 0U) != SUCCESS) return (ERROR);
-  _delay_us(100U);
+  Delay_Microseconds(100U);
   if (whxxxx_WriteNibble(0x30U, 0U) != SUCCESS) return (ERROR);
-  _delay_us(40U);
+  Delay_Microseconds(40U);
   if (whxxxx_WriteNibble(0x20U, 0U) != SUCCESS) return (ERROR);
-  _delay_us(40U);
+  Delay_Microseconds(40U);
 
   if (whxxxx_Command(WHXXXX_FUNCTION_SET) != SUCCESS) return (ERROR);
   if (whxxxx_Command(0x0CU) != SUCCESS) return (ERROR); /* Display on, cursor off */
   if (whxxxx_Command(0x01U) != SUCCESS) return (ERROR); /* Clear display */
-  _delay_us(1640U);
+  Delay_Microseconds(1640U);
   if (whxxxx_Command(0x06U) != SUCCESS) return (ERROR); /* Increment cursor */
 
   displayReady = ENABLE;
@@ -109,7 +115,7 @@ ErrorStatus WHxxxx_Clear(void) {
   if (whxxxx_Lock() != SUCCESS) return (ERROR);
   ErrorStatus status = whxxxx_Command(0x01U);
   if (status == SUCCESS) {
-    _delay_us(1640U);
+    Delay_Microseconds(1640U);
     displayRow = 0U;
     displayColumn = 0U;
     displayNewLinePending = DISABLE;
@@ -150,7 +156,7 @@ ErrorStatus WHxxxx_Print(const uint8_t* buffer, uint16_t length) {
 
 
 // -------------------------------------------------------------
-int putc_dspl_wh(char character) {
+int WHxxxx_PutChar(char character) {
   if ((displayReady != ENABLE) || (displayI2C == NULL) || (displayMutex == NULL)) {
     return (ERROR);
   }
@@ -163,7 +169,7 @@ int putc_dspl_wh(char character) {
   } else if (character != '\r') {
     if (displayNewLinePending == ENABLE) {
       status = whxxxx_Command(0x01U);
-      _delay_us(1640U);
+      Delay_Microseconds(1640U);
       displayRow = 0U;
       displayColumn = 0U;
       displayNewLinePending = DISABLE;
@@ -223,7 +229,7 @@ static ErrorStatus whxxxx_WriteByte(uint8_t value, uint8_t flags) {
   bytes[2] = low | WHXXXX_ENABLE;
   bytes[3] = low;
   ErrorStatus status = I2C_Master_Send(displayI2C, displayAddress, bytes, sizeof(bytes));
-  _delay_us(40U);
+  Delay_Microseconds(40U);
   return (status);
 }
 

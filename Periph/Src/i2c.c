@@ -1,7 +1,13 @@
 /**
   ******************************************************************************
   * @file           : i2c.c
-  * @brief          : Polling I2C master-mode peripheral interface.
+  * @brief          : Polling I2C master-mode peripheral implementation.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 04:51:32 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -35,10 +41,10 @@ ErrorStatus I2C_Init(I2C_TypeDef* i2c) {
   MODIFY_REG(
     GPIOB->CRL,
     GPIO_PIN_6_Mask | GPIO_PIN_7_Mask,
-    (pinMode << (I2C1_SCL_Pin * 4U)) | (pinMode << (I2C1_SDA_Pin * 4U))
+    (pinMode << (I2C1_SCL_PIN * 4U)) | (pinMode << (I2C1_SDA_PIN * 4U))
   );
-  PIN_H(I2C1_SCL_Port, I2C1_SCL_Pin);
-  PIN_H(I2C1_SDA_Port, I2C1_SDA_Pin);
+  PIN_H(I2C1_SCL_PORT, I2C1_SCL_PIN);
+  PIN_H(I2C1_SDA_PORT, I2C1_SDA_PIN);
 
   CLEAR_BIT(i2c->CR1, I2C_CR1_PE);
   SET_BIT(RCC->APB1RSTR, RCC_APB1RSTR_I2C1RST);

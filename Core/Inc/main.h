@@ -1,11 +1,13 @@
 /**
   ******************************************************************************
   * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
+  * @brief          : Main application declarations and module integration.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 20.09.2025 08:34:08 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -58,41 +60,19 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 
 /* Exported variables --------------------------------------------------------*/
-extern __IO uint32_t _PREG_;
+extern __IO uint32_t peripheralReadiness;
 
 /* Private defines -----------------------------------------------------------*/
 /* Peripherals readiness flags */
-#define _PR_HEART_BEAT_LED    0
-#define _PR_USART1_BUS        1
-#define _PR_ONEWIRE_BUS       2
-#define _PR_SPI1_BUS          3
-#define _PR_I2C1_BUS          4
-#define _PR_WH_DISPLAY        5
-#define _PR_BMX280            6
-#define _PR_BMX680            7
-#define _PR_SSD_DISPLAY       8
-
-/* Exported functions prototypes ---------------------------------------------*/
-
-
-/* Service functions related to the CM3 BitBand */
-
-/**
- * 
- */
-extern void Set_BitBandVal(uint32_t, uint32_t);
-
-/**
- * 
- */
-extern uint32_t Get_BitBandVal(uint32_t);
-
-/**
- * 
- */
-void _delay_us(uint32_t);
-void _delay_ms(uint32_t);
-
+#define PERIPHERAL_HEARTBEAT_LED_ERROR_BIT 0
+#define PERIPHERAL_USART1_ERROR_BIT        1
+#define PERIPHERAL_ONEWIRE_ERROR_BIT       2
+#define PERIPHERAL_SPI1_ERROR_BIT          3
+#define PERIPHERAL_I2C1_ERROR_BIT          4
+#define PERIPHERAL_WH_DISPLAY_ERROR_BIT    5
+#define PERIPHERAL_BMX280_ERROR_BIT        6
+#define PERIPHERAL_BMX680_ERROR_BIT        7
+#define PERIPHERAL_SSD_DISPLAY_ERROR_BIT   8
 
 #ifdef __cplusplus
 }

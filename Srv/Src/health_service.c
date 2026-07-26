@@ -2,6 +2,12 @@
   ******************************************************************************
   * @file           : health_service.c
   * @brief          : Internal health supervision and watchdog service.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 25.07.2026 07:44:16 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -61,7 +67,7 @@ void HealthService_Report(HealthComponent_TypeDef component) {
 
 
 // -------------------------------------------------------------
-void system_error(void) {
+void HealthService_LatchFailure(void) {
   emergencyLatched = pdTRUE;
 }
 
@@ -95,7 +101,7 @@ static void healthService_Task(void* parameters) {
           "Self-check: FAILED, missing:0x%08lx\n",
           (unsigned long)(expected & ~observed)
         );
-        system_error();
+        HealthService_LatchFailure();
       } else {
         printf("Self-check: OK\n");
       }

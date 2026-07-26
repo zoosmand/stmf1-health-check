@@ -1,7 +1,13 @@
 /**
   ******************************************************************************
   * @file           : bmx280.c
-  * @brief          : Bosch BMP280/BME280 sensor implementation.
+  * @brief          : Bosch BMP280 and BME280 sensor implementation.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 10:05:16 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -24,57 +30,57 @@ static uint32_t bmx280_CompensateHumidity(BMxX80_TypeDef*);
 
 // -------------------------------------------------------------
 ErrorStatus BMx280_Init(BMxX80_TypeDef* dev) {
-  if ((dev == NULL) || (dev->I2Cx == NULL) || (dev->RawBufPtr == NULL)
-      || (dev->CalibPtr == NULL) || (dev->Lock != DISABLE)) {
+  if ((dev == NULL) || (dev->i2c == NULL) || (dev->rawBuffer == NULL)
+      || (dev->calibration == NULL) || (dev->lock != DISABLE)) {
     return (ERROR);
   }
-  dev->Lock = ENABLE;
+  dev->lock = ENABLE;
   ErrorStatus status = ERROR;
 
   if (bmx280_Receive(dev, BMX280_DEV_ID, 1U) != SUCCESS) goto done;
-  dev->DevID = dev->RawBufPtr[0];
-  if ((dev->DevID != BMP280_ID) && (dev->DevID != BME280_ID)) goto done;
+  dev->deviceId = dev->rawBuffer[0];
+  if ((dev->deviceId != BMP280_ID) && (dev->deviceId != BME280_ID)) goto done;
   if (bmx280_Receive(dev, BMXX80_UNIQUE_ID_REG, 4U) != SUCCESS) goto done;
-  dev->UniqueID = (
-      ((((uint32_t)dev->RawBufPtr[3]
-        + ((uint32_t)dev->RawBufPtr[2] << 8)) & 0x7FFFU) << 16)
-    | ((uint32_t)dev->RawBufPtr[1] << 8)
-    | (uint32_t)dev->RawBufPtr[0]
+  dev->uniqueId = (
+      ((((uint32_t)dev->rawBuffer[3]
+        + ((uint32_t)dev->rawBuffer[2] << 8)) & 0x7FFFU) << 16)
+    | ((uint32_t)dev->rawBuffer[1] << 8)
+    | (uint32_t)dev->rawBuffer[0]
   );
 
   if (bmx280_Send(dev, BMX280_RESET, BMX280_RESET_VALUE) != SUCCESS) goto done;
   if (bmx280_WaitNvmCopy(dev) != SUCCESS) goto done;
 
   if (bmx280_Receive(dev, BMX280_CALIB1, 26U) != SUCCESS) goto done;
-  BMx280_calib_t* calib = (BMx280_calib_t*)dev->CalibPtr;
-  calib->dig_t1 = (uint16_t)((dev->RawBufPtr[1] << 8) | dev->RawBufPtr[0]);
-  calib->dig_t2 = (int16_t)((dev->RawBufPtr[3] << 8) | dev->RawBufPtr[2]);
-  calib->dig_t3 = (int16_t)((dev->RawBufPtr[5] << 8) | dev->RawBufPtr[4]);
-  calib->dig_p1 = (uint16_t)((dev->RawBufPtr[7] << 8) | dev->RawBufPtr[6]);
-  calib->dig_p2 = (int16_t)((dev->RawBufPtr[9] << 8) | dev->RawBufPtr[8]);
-  calib->dig_p3 = (int16_t)((dev->RawBufPtr[11] << 8) | dev->RawBufPtr[10]);
-  calib->dig_p4 = (int16_t)((dev->RawBufPtr[13] << 8) | dev->RawBufPtr[12]);
-  calib->dig_p5 = (int16_t)((dev->RawBufPtr[15] << 8) | dev->RawBufPtr[14]);
-  calib->dig_p6 = (int16_t)((dev->RawBufPtr[17] << 8) | dev->RawBufPtr[16]);
-  calib->dig_p7 = (int16_t)((dev->RawBufPtr[19] << 8) | dev->RawBufPtr[18]);
-  calib->dig_p8 = (int16_t)((dev->RawBufPtr[21] << 8) | dev->RawBufPtr[20]);
-  calib->dig_p9 = (int16_t)((dev->RawBufPtr[23] << 8) | dev->RawBufPtr[22]);
+  BMx280_Calibration_TypeDef* calib = (BMx280_Calibration_TypeDef*)dev->calibration;
+  calib->dig_t1 = (uint16_t)((dev->rawBuffer[1] << 8) | dev->rawBuffer[0]);
+  calib->dig_t2 = (int16_t)((dev->rawBuffer[3] << 8) | dev->rawBuffer[2]);
+  calib->dig_t3 = (int16_t)((dev->rawBuffer[5] << 8) | dev->rawBuffer[4]);
+  calib->dig_p1 = (uint16_t)((dev->rawBuffer[7] << 8) | dev->rawBuffer[6]);
+  calib->dig_p2 = (int16_t)((dev->rawBuffer[9] << 8) | dev->rawBuffer[8]);
+  calib->dig_p3 = (int16_t)((dev->rawBuffer[11] << 8) | dev->rawBuffer[10]);
+  calib->dig_p4 = (int16_t)((dev->rawBuffer[13] << 8) | dev->rawBuffer[12]);
+  calib->dig_p5 = (int16_t)((dev->rawBuffer[15] << 8) | dev->rawBuffer[14]);
+  calib->dig_p6 = (int16_t)((dev->rawBuffer[17] << 8) | dev->rawBuffer[16]);
+  calib->dig_p7 = (int16_t)((dev->rawBuffer[19] << 8) | dev->rawBuffer[18]);
+  calib->dig_p8 = (int16_t)((dev->rawBuffer[21] << 8) | dev->rawBuffer[20]);
+  calib->dig_p9 = (int16_t)((dev->rawBuffer[23] << 8) | dev->rawBuffer[22]);
   if (calib->dig_p1 == 0U) goto done;
 
-  if (dev->DevID == BME280_ID) {
-    calib->dig_h1 = dev->RawBufPtr[25];
+  if (dev->deviceId == BME280_ID) {
+    calib->dig_h1 = dev->rawBuffer[25];
     if (bmx280_Receive(dev, BMX280_CALIB2, 7U) != SUCCESS) goto done;
-    calib->dig_h2 = (int16_t)((dev->RawBufPtr[1] << 8) | dev->RawBufPtr[0]);
-    calib->dig_h3 = dev->RawBufPtr[2];
+    calib->dig_h2 = (int16_t)((dev->rawBuffer[1] << 8) | dev->rawBuffer[0]);
+    calib->dig_h3 = dev->rawBuffer[2];
     calib->dig_h4 = (int16_t)(
-      ((int16_t)(int8_t)dev->RawBufPtr[3] * 16)
-      | (dev->RawBufPtr[4] & 0x0FU)
+      ((int16_t)(int8_t)dev->rawBuffer[3] * 16)
+      | (dev->rawBuffer[4] & 0x0FU)
     );
     calib->dig_h5 = (int16_t)(
-      ((int16_t)(int8_t)dev->RawBufPtr[5] * 16)
-      | (dev->RawBufPtr[4] >> 4)
+      ((int16_t)(int8_t)dev->rawBuffer[5] * 16)
+      | (dev->rawBuffer[4] >> 4)
     );
-    calib->dig_h6 = (int8_t)dev->RawBufPtr[6];
+    calib->dig_h6 = (int8_t)dev->rawBuffer[6];
   }
 
   if (bmx280_Send(
@@ -82,7 +88,7 @@ ErrorStatus BMx280_Init(BMxX80_TypeDef* dev) {
         BMX280_SETTINGS,
         BMX280_CONFIG_INACTIVE_250 | BMX280_CONFIG_FILTER_4
       ) != SUCCESS) goto done;
-  if ((dev->DevID == BME280_ID)
+  if ((dev->deviceId == BME280_ID)
       && (bmx280_Send(dev, BMX280_CTRL_HUM, BMX280_HUMIDITY_OVS_X4) != SUCCESS)) {
     goto done;
   }
@@ -95,7 +101,7 @@ ErrorStatus BMx280_Init(BMxX80_TypeDef* dev) {
   status = SUCCESS;
 
 done:
-  dev->Lock = DISABLE;
+  dev->lock = DISABLE;
   return (status);
 }
 
@@ -103,9 +109,9 @@ done:
 
 
 // -------------------------------------------------------------
-ErrorStatus BMx280_Measurement(BMxX80_TypeDef* dev) {
-  if ((dev == NULL) || (dev->Lock != DISABLE)) return (ERROR);
-  dev->Lock = ENABLE;
+ErrorStatus BMx280_Measure(BMxX80_TypeDef* dev) {
+  if ((dev == NULL) || (dev->lock != DISABLE)) return (ERROR);
+  dev->lock = ENABLE;
   ErrorStatus status = ERROR;
 
   if (bmx280_Send(
@@ -116,33 +122,33 @@ ErrorStatus BMx280_Measurement(BMxX80_TypeDef* dev) {
 
   if (bmx280_WaitMeasurement(dev) != SUCCESS) goto done;
 
-  uint8_t dataLength = (dev->DevID == BME280_ID) ? 8U : 6U;
+  uint8_t dataLength = (dev->deviceId == BME280_ID) ? 8U : 6U;
   if (bmx280_Receive(dev, BMX280_DATA, dataLength) != SUCCESS) goto done;
   uint32_t rawPressure = (
-      ((uint32_t)dev->RawBufPtr[0] << 12)
-    | ((uint32_t)dev->RawBufPtr[1] << 4)
-    | ((uint32_t)dev->RawBufPtr[2] >> 4)
+      ((uint32_t)dev->rawBuffer[0] << 12)
+    | ((uint32_t)dev->rawBuffer[1] << 4)
+    | ((uint32_t)dev->rawBuffer[2] >> 4)
   );
   uint32_t rawTemperature = (
-      ((uint32_t)dev->RawBufPtr[3] << 12)
-    | ((uint32_t)dev->RawBufPtr[4] << 4)
-    | ((uint32_t)dev->RawBufPtr[5] >> 4)
+      ((uint32_t)dev->rawBuffer[3] << 12)
+    | ((uint32_t)dev->rawBuffer[4] << 4)
+    | ((uint32_t)dev->rawBuffer[5] >> 4)
   );
   if ((rawPressure == 0x80000U) || (rawTemperature == 0x80000U)) goto done;
 
-  dev->Results.temperature = bmx280_CompensateTemperature(dev);
-  dev->Results.pressure = bmx280_CompensatePressure(dev);
-  if (dev->DevID == BME280_ID) {
+  dev->results.temperature = bmx280_CompensateTemperature(dev);
+  dev->results.pressure = bmx280_CompensatePressure(dev);
+  if (dev->deviceId == BME280_ID) {
     uint32_t humidityQ22_10 = bmx280_CompensateHumidity(dev);
-    dev->Results.humidity = ((humidityQ22_10 * 1000U) + 512U) / 1024U;
+    dev->results.humidity = ((humidityQ22_10 * 1000U) + 512U) / 1024U;
   } else {
-    dev->Results.humidity = 0U;
+    dev->results.humidity = 0U;
   }
 
   status = SUCCESS;
 
 done:
-  dev->Lock = DISABLE;
+  dev->lock = DISABLE;
   return (status);
 }
 
@@ -152,7 +158,7 @@ done:
 // -------------------------------------------------------------
 static ErrorStatus bmx280_Send(BMxX80_TypeDef* dev, uint8_t reg, uint8_t value) {
   uint8_t buffer[2] = {reg, value};
-  return I2C_Master_Send(dev->I2Cx, dev->I2C_Address, buffer, sizeof(buffer));
+  return I2C_Master_Send(dev->i2c, dev->i2cAddress, buffer, sizeof(buffer));
 }
 
 
@@ -161,10 +167,10 @@ static ErrorStatus bmx280_Send(BMxX80_TypeDef* dev, uint8_t reg, uint8_t value) 
 // -------------------------------------------------------------
 static ErrorStatus bmx280_Receive(BMxX80_TypeDef* dev, uint8_t reg, uint8_t length) {
   return I2C_Master_ReadRegister(
-    dev->I2Cx,
-    dev->I2C_Address,
+    dev->i2c,
+    dev->i2cAddress,
     reg,
-    dev->RawBufPtr,
+    dev->rawBuffer,
     length
   );
 }
@@ -175,9 +181,9 @@ static ErrorStatus bmx280_Receive(BMxX80_TypeDef* dev, uint8_t reg, uint8_t leng
 // -------------------------------------------------------------
 static ErrorStatus bmx280_WaitNvmCopy(BMxX80_TypeDef* dev) {
   for (uint8_t attempts = 0U; attempts < 5U; attempts++) {
-    _delay_ms(2U);
+    Delay_Milliseconds(2U);
     if (bmx280_Receive(dev, BMX280_STATUS, 1U) != SUCCESS) return (ERROR);
-    if ((dev->RawBufPtr[0] & BMX280_IM_UPDATE) == 0U) return (SUCCESS);
+    if ((dev->rawBuffer[0] & BMX280_IM_UPDATE) == 0U) return (SUCCESS);
   }
   return (ERROR);
 }
@@ -188,9 +194,9 @@ static ErrorStatus bmx280_WaitNvmCopy(BMxX80_TypeDef* dev) {
 // -------------------------------------------------------------
 static ErrorStatus bmx280_WaitMeasurement(BMxX80_TypeDef* dev) {
   for (uint16_t attempts = 0U; attempts < 250U; attempts++) {
-    _delay_ms(1U);
+    Delay_Milliseconds(1U);
     if (bmx280_Receive(dev, BMX280_STATUS, 1U) != SUCCESS) return (ERROR);
-    if ((dev->RawBufPtr[0] & BMX280_MEASURING) == 0U) return (SUCCESS);
+    if ((dev->rawBuffer[0] & BMX280_MEASURING) == 0U) return (SUCCESS);
   }
   return (ERROR);
 }
@@ -201,11 +207,11 @@ static ErrorStatus bmx280_WaitMeasurement(BMxX80_TypeDef* dev) {
 // -------------------------------------------------------------
 static int32_t bmx280_CompensateTemperature(BMxX80_TypeDef* dev) {
   int32_t adcTemperature = (
-      ((int32_t)dev->RawBufPtr[3] << 12)
-    | ((int32_t)dev->RawBufPtr[4] << 4)
-    | ((int32_t)dev->RawBufPtr[5] >> 4)
+      ((int32_t)dev->rawBuffer[3] << 12)
+    | ((int32_t)dev->rawBuffer[4] << 4)
+    | ((int32_t)dev->rawBuffer[5] >> 4)
   );
-  BMx280_calib_t* calib = (BMx280_calib_t*)dev->CalibPtr;
+  BMx280_Calibration_TypeDef* calib = (BMx280_Calibration_TypeDef*)dev->calibration;
   int32_t var1 = ((((adcTemperature >> 3) - ((int32_t)calib->dig_t1 << 1)))
                   * (int32_t)calib->dig_t2) >> 11;
   int32_t var2 = (((((adcTemperature >> 4) - (int32_t)calib->dig_t1)
@@ -221,11 +227,11 @@ static int32_t bmx280_CompensateTemperature(BMxX80_TypeDef* dev) {
 // -------------------------------------------------------------
 static uint32_t bmx280_CompensatePressure(BMxX80_TypeDef* dev) {
   int32_t adcPressure = (
-      ((int32_t)dev->RawBufPtr[0] << 12)
-    | ((int32_t)dev->RawBufPtr[1] << 4)
-    | ((int32_t)dev->RawBufPtr[2] >> 4)
+      ((int32_t)dev->rawBuffer[0] << 12)
+    | ((int32_t)dev->rawBuffer[1] << 4)
+    | ((int32_t)dev->rawBuffer[2] >> 4)
   );
-  BMx280_calib_t* calib = (BMx280_calib_t*)dev->CalibPtr;
+  BMx280_Calibration_TypeDef* calib = (BMx280_Calibration_TypeDef*)dev->calibration;
   int32_t var1 = (tFine >> 1) - 64000;
   int32_t var2 = (((var1 >> 2) * (var1 >> 2)) >> 11) * calib->dig_p6;
   var2 += (var1 * calib->dig_p5) << 1;
@@ -249,8 +255,8 @@ static uint32_t bmx280_CompensatePressure(BMxX80_TypeDef* dev) {
 
 // -------------------------------------------------------------
 static uint32_t bmx280_CompensateHumidity(BMxX80_TypeDef* dev) {
-  int32_t adcHumidity = ((int32_t)dev->RawBufPtr[6] << 8) | dev->RawBufPtr[7];
-  BMx280_calib_t* calib = (BMx280_calib_t*)dev->CalibPtr;
+  int32_t adcHumidity = ((int32_t)dev->rawBuffer[6] << 8) | dev->rawBuffer[7];
+  BMx280_Calibration_TypeDef* calib = (BMx280_Calibration_TypeDef*)dev->calibration;
   int32_t humidity = tFine - 76800;
   humidity = (((((adcHumidity << 14) - ((int32_t)calib->dig_h4 << 20)
       - (calib->dig_h5 * humidity)) + 16384) >> 15)

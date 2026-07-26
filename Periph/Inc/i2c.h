@@ -2,6 +2,12 @@
   ******************************************************************************
   * @file           : i2c.h
   * @brief          : I2C master-mode peripheral interface.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 04:51:32 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -14,10 +20,10 @@ extern "C" {
 
 #include "main.h"
 
-#define I2C1_SCL_Port GPIOB
-#define I2C1_SCL_Pin  GPIO_PIN_6
-#define I2C1_SDA_Port GPIOB
-#define I2C1_SDA_Pin  GPIO_PIN_7
+#define I2C1_SCL_PORT GPIOB
+#define I2C1_SCL_PIN  GPIO_PIN_6
+#define I2C1_SDA_PORT GPIOB
+#define I2C1_SDA_PIN  GPIO_PIN_7
 
 ErrorStatus I2C_Init(I2C_TypeDef*);
 ErrorStatus I2C_Master_Send(I2C_TypeDef*, uint8_t, const uint8_t*, uint16_t);

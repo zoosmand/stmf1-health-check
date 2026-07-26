@@ -8,6 +8,10 @@
 * TCP measurement service on port 5005
 * TCP sensor information and health service on port 5006
 
+### Development documentation
+
+* [Naming conventions](docs/NAMING_CONVENTIONS.md)
+
 ### TCP measurement commands
 
 Measurement commands listen on TCP port 5005. Commands may be terminated with
@@ -132,4 +136,4 @@ OK t:4,h:2,p:2,all:4
 
 ---
 
-&copy; 2017-2025, Askug Ltd., Dmitry Slobodchikov
+&copy; 2017-2026, Askug Ltd., Dmitry Slobodchikov

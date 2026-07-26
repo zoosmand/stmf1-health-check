@@ -1,7 +1,13 @@
 /**
   ******************************************************************************
   * @file           : temperature_service.c
-  * @brief          : Sequential periodic temperature sensor service.
+  * @brief          : Sequential periodic environmental sensor service.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 24.07.2026 10:05:16 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -61,20 +67,20 @@ static void temperatureSensorService_PrintCentiDegrees(int32_t);
 
 // -------------------------------------------------------------
 void TemperatureSensorService_Init(void) {
-  if (!FLAG_CHECK(_PREG_, _PR_I2C1_BUS)) {
-    if (BMx280_Init(Get_BoschDevice(BMX280_MODEL)) != SUCCESS) {
-      FLAG_SET(_PREG_, _PR_BMX280);
+  if (!FLAG_CHECK(peripheralReadiness, PERIPHERAL_I2C1_ERROR_BIT)) {
+    if (BMx280_Init(BMxX80_GetDevice(BMX280_MODEL)) != SUCCESS) {
+      FLAG_SET(peripheralReadiness, PERIPHERAL_BMX280_ERROR_BIT);
     } else {
       bmx280Registered = pdTRUE;
     }
-    if (BMx680_Init(Get_BoschDevice(BMX680_MODEL)) != SUCCESS) {
-      FLAG_SET(_PREG_, _PR_BMX680);
+    if (BMx680_Init(BMxX80_GetDevice(BMX680_MODEL)) != SUCCESS) {
+      FLAG_SET(peripheralReadiness, PERIPHERAL_BMX680_ERROR_BIT);
     } else {
       bmx680Registered = pdTRUE;
     }
   } else {
-    FLAG_SET(_PREG_, _PR_BMX280);
-    FLAG_SET(_PREG_, _PR_BMX680);
+    FLAG_SET(peripheralReadiness, PERIPHERAL_BMX280_ERROR_BIT);
+    FLAG_SET(peripheralReadiness, PERIPHERAL_BMX680_ERROR_BIT);
   }
 
   static StaticTask_t taskControlBlock;
@@ -194,10 +200,10 @@ static ErrorStatus temperatureSensorService_MeasureDs18b20(
 
 // -------------------------------------------------------------
 static ErrorStatus temperatureSensorService_MeasureBmx280(void) {
-  if (FLAG_CHECK(_PREG_, _PR_BMX280)) return (ERROR);
+  if (FLAG_CHECK(peripheralReadiness, PERIPHERAL_BMX280_ERROR_BIT)) return (ERROR);
 
-  BMxX80_TypeDef* device = Get_BoschDevice(BMX280_MODEL);
-  return BMx280_Measurement(device);
+  BMxX80_TypeDef* device = BMxX80_GetDevice(BMX280_MODEL);
+  return BMx280_Measure(device);
 }
 
 
@@ -205,10 +211,10 @@ static ErrorStatus temperatureSensorService_MeasureBmx280(void) {
 
 // -------------------------------------------------------------
 static ErrorStatus temperatureSensorService_MeasureBmx680(void) {
-  if (FLAG_CHECK(_PREG_, _PR_BMX680)) return (ERROR);
+  if (FLAG_CHECK(peripheralReadiness, PERIPHERAL_BMX680_ERROR_BIT)) return (ERROR);
 
-  BMxX80_TypeDef* device = Get_BoschDevice(BMX680_MODEL);
-  return BMx680_Measurement(device);
+  BMxX80_TypeDef* device = BMxX80_GetDevice(BMX680_MODEL);
+  return BMx680_Measure(device);
 }
 
 
@@ -274,28 +280,28 @@ static void temperatureSensorService_UpdateSnapshots(
   }
 
   if (bmx280Registered == pdTRUE) {
-    BMxX80_TypeDef* device = Get_BoschDevice(BMX280_MODEL);
+    BMxX80_TypeDef* device = BMxX80_GetDevice(BMX280_MODEL);
     int8_t index = temperatureSensorService_FindModel(
-      (device->DevID == BME280_ID) ? SENSOR_MODEL_BME280 : SENSOR_MODEL_BMP280
+      (device->deviceId == BME280_ID) ? SENSOR_MODEL_BME280 : SENSOR_MODEL_BMP280
     );
     if ((index < 0) && (sensorSnapshotCount < SENSOR_SERVICE_MAX_DEVICES)) {
       index = (int8_t)sensorSnapshotCount++;
       sensorSnapshots[index] = (SensorSnapshot_TypeDef){
-        .model = (device->DevID == BME280_ID)
+        .model = (device->deviceId == BME280_ID)
           ? SENSOR_MODEL_BME280
           : SENSOR_MODEL_BMP280,
         .capabilities = SENSOR_CAPABILITY_TEMPERATURE
           | SENSOR_CAPABILITY_PRESSURE
-          | ((device->DevID == BME280_ID) ? SENSOR_CAPABILITY_HUMIDITY : 0U),
+          | ((device->deviceId == BME280_ID) ? SENSOR_CAPABILITY_HUMIDITY : 0U),
         .health = SENSOR_HEALTH_INITIALIZING,
         .lastError = SENSOR_ERROR_NOT_READY
       };
-      sensorSnapshots[index].serialNumber = device->UniqueID;
+      sensorSnapshots[index].serialNumber = device->uniqueId;
     }
     if (index >= 0) {
-      sensorSnapshots[index].temperature = device->Results.temperature;
-      sensorSnapshots[index].pressure = device->Results.pressure;
-      sensorSnapshots[index].humidity = device->Results.humidity;
+      sensorSnapshots[index].temperature = device->results.temperature;
+      sensorSnapshots[index].pressure = device->results.pressure;
+      sensorSnapshots[index].humidity = device->results.humidity;
       temperatureSensorService_RecordResult(
         &sensorSnapshots[index],
         bmx280Status,
@@ -306,7 +312,7 @@ static void temperatureSensorService_UpdateSnapshots(
   }
 
   if (bmx680Registered == pdTRUE) {
-    BMxX80_TypeDef* device = Get_BoschDevice(BMX680_MODEL);
+    BMxX80_TypeDef* device = BMxX80_GetDevice(BMX680_MODEL);
     int8_t index = temperatureSensorService_FindModel(SENSOR_MODEL_BME680);
     if ((index < 0) && (sensorSnapshotCount < SENSOR_SERVICE_MAX_DEVICES)) {
       index = (int8_t)sensorSnapshotCount++;
@@ -318,12 +324,12 @@ static void temperatureSensorService_UpdateSnapshots(
         .health = SENSOR_HEALTH_INITIALIZING,
         .lastError = SENSOR_ERROR_NOT_READY
       };
-      sensorSnapshots[index].serialNumber = device->UniqueID;
+      sensorSnapshots[index].serialNumber = device->uniqueId;
     }
     if (index >= 0) {
-      sensorSnapshots[index].temperature = device->Results.temperature;
-      sensorSnapshots[index].pressure = device->Results.pressure;
-      sensorSnapshots[index].humidity = device->Results.humidity;
+      sensorSnapshots[index].temperature = device->results.temperature;
+      sensorSnapshots[index].pressure = device->results.pressure;
+      sensorSnapshots[index].humidity = device->results.humidity;
       temperatureSensorService_RecordResult(
         &sensorSnapshots[index],
         bmx680Status,
@@ -451,15 +457,15 @@ static void temperatureSensorService_PrintMeasurements(
   printf("\n");
 
   if (bmx280Status == SUCCESS) {
-    BMxX80_TypeDef* device = Get_BoschDevice(BMX280_MODEL);
-    printf((device->DevID == BME280_ID) ? "BME280: " : "BMP280: ");
-    temperatureSensorService_PrintCentiDegrees(device->Results.temperature);
-    printf(" C, %lu Pa", (unsigned long)device->Results.pressure);
-    if (device->DevID == BME280_ID) {
+    BMxX80_TypeDef* device = BMxX80_GetDevice(BMX280_MODEL);
+    printf((device->deviceId == BME280_ID) ? "BME280: " : "BMP280: ");
+    temperatureSensorService_PrintCentiDegrees(device->results.temperature);
+    printf(" C, %lu Pa", (unsigned long)device->results.pressure);
+    if (device->deviceId == BME280_ID) {
       printf(
         ", %lu.%03lu %%RH",
-        (unsigned long)(device->Results.humidity / 1000U),
-        (unsigned long)(device->Results.humidity % 1000U)
+        (unsigned long)(device->results.humidity / 1000U),
+        (unsigned long)(device->results.humidity % 1000U)
       );
     }
   } else {
@@ -468,14 +474,14 @@ static void temperatureSensorService_PrintMeasurements(
   printf("\n");
 
   if (bmx680Status == SUCCESS) {
-    BMxX80_TypeDef* device = Get_BoschDevice(BMX680_MODEL);
+    BMxX80_TypeDef* device = BMxX80_GetDevice(BMX680_MODEL);
     printf("BME680: ");
-    temperatureSensorService_PrintCentiDegrees(device->Results.temperature);
+    temperatureSensorService_PrintCentiDegrees(device->results.temperature);
     printf(
       " C, %lu Pa, %lu.%03lu %%RH",
-      (unsigned long)device->Results.pressure,
-      (unsigned long)(device->Results.humidity / 1000U),
-      (unsigned long)(device->Results.humidity % 1000U)
+      (unsigned long)device->results.pressure,
+      (unsigned long)(device->results.humidity / 1000U),
+      (unsigned long)(device->results.humidity % 1000U)
     );
   } else {
     printf("BME680: conversion error");

@@ -1,10 +1,13 @@
 /**
   ******************************************************************************
   * @file           : common.c
-  * @brief          : Common used routines and printf() supply
+  * @brief          : Common routines and printf output routing.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 20.09.2025 08:34:08 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -24,7 +27,7 @@ __STATIC_INLINE void _putc(uint8_t ch);
   * @param  None
   * @retval None
   */
-void __attribute__((weak)) Error_Handler(void) {
+void __attribute__((weak)) System_ErrorHandler(void) {
   while (1) {
     //
   }
@@ -71,13 +74,13 @@ __STATIC_INLINE void _putc(uint8_t ch) {
   #endif
 
   #if defined(USE_WH_DISPLAY) || defined(USE_SSD_DISPLAY)
-    if (!FLAG_CHECK(_PREG_, _PR_I2C1_BUS)
+    if (!FLAG_CHECK(peripheralReadiness, PERIPHERAL_I2C1_ERROR_BIT)
         && !FLAG_CHECK(
-          _PREG_,
+          peripheralReadiness,
           #if defined(USE_WH_DISPLAY)
-            _PR_WH_DISPLAY
+            PERIPHERAL_WH_DISPLAY_ERROR_BIT
           #else
-            _PR_SSD_DISPLAY
+            PERIPHERAL_SSD_DISPLAY_ERROR_BIT
           #endif
         )) {
       DSPL_OUT(ch);
@@ -139,7 +142,7 @@ __STATIC_INLINE void _DWT_Init(void) {
 
 
 
-void _delay_us(uint32_t us) {
+void Delay_Microseconds(uint32_t us) {
   _DWT_Init();
   uint32_t const start = DWT->CYCCNT;
   uint32_t const ticks = us * (configCPU_CLOCK_HZ / 1000000U);
@@ -149,6 +152,6 @@ void _delay_us(uint32_t us) {
 
 
 
-void _delay_ms(uint32_t ms) {
-  _delay_us(ms * 1000);
+void Delay_Milliseconds(uint32_t ms) {
+  Delay_Microseconds(ms * 1000);
 }

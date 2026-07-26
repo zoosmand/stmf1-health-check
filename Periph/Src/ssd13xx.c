@@ -1,7 +1,13 @@
 /**
   ******************************************************************************
   * @file           : ssd13xx.c
-  * @brief          : SSD1306/SSD1315 display interface over I2C.
+  * @brief          : SSD1306 and SSD1315 display implementation.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 25.07.2026 03:58:46 PM
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -60,10 +66,10 @@ ErrorStatus SSD13xx_Init(
   displayMutex = xSemaphoreCreateMutexStatic(&displayMutexBuffer);
   if (displayMutex == NULL) return (ERROR);
 
-  device->I2C = i2c;
-  device->Address = address;
-  device->Model = model;
-  device->Font = font;
+  device->i2c = i2c;
+  device->address = address;
+  device->model = model;
+  device->font = font;
   displayDevice = device;
   displayColumn = 0U;
   displayRow = 0U;
@@ -74,7 +80,7 @@ ErrorStatus SSD13xx_Init(
     0xD9U, 0x88U, 0xDBU, 0x20U, 0xA4U, 0xA6U, 0xAFU
   };
 
-  _delay_ms(15U);
+  Delay_Milliseconds(15U);
   if (ssd13xx_SendCommands(
         device,
         initCommands,
@@ -109,8 +115,8 @@ ErrorStatus SSD13xx_Clear(SSD13xx_TypeDef* device) {
   uint8_t clearBuffer[17] = {SSD13XX_DATA_CONTROL};
   for (uint8_t block = 0U; (block < 64U) && (status == SUCCESS); block++) {
     status = I2C_Master_Send(
-      device->I2C,
-      device->Address,
+      device->i2c,
+      device->address,
       clearBuffer,
       sizeof(clearBuffer)
     );
@@ -125,13 +131,13 @@ ErrorStatus SSD13xx_Clear(SSD13xx_TypeDef* device) {
 
 
 // -------------------------------------------------------------
-int putc_dspl_ssd(char character) {
+int SSD13xx_PutChar(char character) {
   if ((displayDevice == NULL) || (displayMutex == NULL)) return (ERROR);
   if (xSemaphoreTake(displayMutex, portMAX_DELAY) != pdTRUE) return (ERROR);
 
   ErrorStatus status = SUCCESS;
-  uint8_t columns = (displayDevice->Font == SSD13XX_FONT_10X14) ? 10U : 21U;
-  uint8_t rows = (displayDevice->Font == SSD13XX_FONT_10X14) ? 4U : 8U;
+  uint8_t columns = (displayDevice->font == SSD13XX_FONT_10X14) ? 10U : 21U;
+  uint8_t rows = (displayDevice->font == SSD13XX_FONT_10X14) ? 4U : 8U;
 
   if (character == '\n') {
     displayColumn = 0U;
@@ -161,7 +167,7 @@ static ErrorStatus ssd13xx_SendCommands(
   uint8_t buffer[32];
   buffer[0] = SSD13XX_COMMAND_CONTROL;
   for (uint8_t i = 0U; i < length; i++) buffer[i + 1U] = commands[i];
-  return I2C_Master_Send(device->I2C, device->Address, buffer, length + 1U);
+  return I2C_Master_Send(device->i2c, device->address, buffer, length + 1U);
 }
 
 
@@ -192,7 +198,7 @@ static ErrorStatus ssd13xx_ClearTextRow(
   SSD13xx_TypeDef* device,
   uint8_t row
 ) {
-  uint8_t pageCount = (device->Font == SSD13XX_FONT_10X14) ? 2U : 1U;
+  uint8_t pageCount = (device->font == SSD13XX_FONT_10X14) ? 2U : 1U;
   uint8_t firstPage = row * pageCount;
   ErrorStatus status = ssd13xx_SetWindow(
     device,
@@ -206,8 +212,8 @@ static ErrorStatus ssd13xx_ClearTextRow(
   uint8_t blocks = 8U * pageCount;
   for (uint8_t i = 0U; (i < blocks) && (status == SUCCESS); i++) {
     status = I2C_Master_Send(
-      device->I2C,
-      device->Address,
+      device->i2c,
+      device->address,
       clearBuffer,
       sizeof(clearBuffer)
     );
@@ -229,7 +235,7 @@ static ErrorStatus ssd13xx_WriteCharacter(
   uint8_t glyphIndex = ssd13xx_FontIndex(character);
 
   glyphBuffer[0] = SSD13XX_DATA_CONTROL;
-  if (device->Font == SSD13XX_FONT_10X14) {
+  if (device->font == SSD13XX_FONT_10X14) {
     glyphLength = sizeof(font_dot_10x14_t);
     pageCount = 2U;
     for (uint8_t i = 0U; i < glyphLength; i++) {
@@ -256,8 +262,8 @@ static ErrorStatus ssd13xx_WriteCharacter(
   );
   if (status != SUCCESS) return (ERROR);
   return I2C_Master_Send(
-    device->I2C,
-    device->Address,
+    device->i2c,
+    device->address,
     glyphBuffer,
     glyphLength + 1U
   );
