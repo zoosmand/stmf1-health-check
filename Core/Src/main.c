@@ -43,6 +43,12 @@ int main(void) {
       || (SPI_AdjustConfiguration(SPI1) != SUCCESS)) {
     FLAG_SET(peripheralReadiness, PERIPHERAL_SPI1_ERROR_BIT);
   }
+  if ((SPI_Init(SPI2) != SUCCESS)
+      || (SPI_AdjustConfiguration(SPI2) != SUCCESS)) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_SPI2_ERROR_BIT);
+  } else if (W25Qxx_Init() != SUCCESS) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_W25Q64_ERROR_BIT);
+  }
   if (I2C_Init(I2C1) != SUCCESS) {
     FLAG_SET(peripheralReadiness, PERIPHERAL_I2C1_ERROR_BIT);
   } else {
@@ -230,7 +236,10 @@ void SystemInit (void) {
   ));
 
   /* APB1 peripherals */
-  SET_BIT(RCC->APB1ENR, RCC_APB1ENR_I2C1EN);
+  SET_BIT(RCC->APB1ENR, (
+      RCC_APB1ENR_I2C1EN
+    | RCC_APB1ENR_SPI2EN
+  ));
 
   /* APB2 peripherals */
   SET_BIT(RCC->APB2ENR, (

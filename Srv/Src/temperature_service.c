@@ -240,8 +240,10 @@ static void temperatureSensorService_UpdateSnapshots(
       sensorSnapshots[index] = (SensorSnapshot_TypeDef){
         .model = SENSOR_MODEL_DS18B20,
         .capabilities = SENSOR_CAPABILITY_TEMPERATURE,
-        .health = SENSOR_HEALTH_INITIALIZING,
-        .lastError = SENSOR_ERROR_NOT_READY
+        .health = {
+          .state = DEVICE_HEALTH_INITIALIZING,
+          .lastError = SENSOR_ERROR_NOT_READY
+        }
       };
       memcpy(
         sensorSnapshots[index].identity,
@@ -274,7 +276,7 @@ static void temperatureSensorService_UpdateSnapshots(
         SENSOR_ERROR_MISSING,
         now
       );
-      sensorSnapshots[i].health = SENSOR_HEALTH_MISSING;
+      sensorSnapshots[i].health.state = DEVICE_HEALTH_MISSING;
       sensorSnapshots[i].dataValid = pdFALSE;
     }
   }
@@ -293,8 +295,10 @@ static void temperatureSensorService_UpdateSnapshots(
         .capabilities = SENSOR_CAPABILITY_TEMPERATURE
           | SENSOR_CAPABILITY_PRESSURE
           | ((device->deviceId == BME280_ID) ? SENSOR_CAPABILITY_HUMIDITY : 0U),
-        .health = SENSOR_HEALTH_INITIALIZING,
-        .lastError = SENSOR_ERROR_NOT_READY
+        .health = {
+          .state = DEVICE_HEALTH_INITIALIZING,
+          .lastError = SENSOR_ERROR_NOT_READY
+        }
       };
       sensorSnapshots[index].serialNumber = device->uniqueId;
     }
@@ -321,8 +325,10 @@ static void temperatureSensorService_UpdateSnapshots(
         .capabilities = SENSOR_CAPABILITY_TEMPERATURE
           | SENSOR_CAPABILITY_PRESSURE
           | SENSOR_CAPABILITY_HUMIDITY,
-        .health = SENSOR_HEALTH_INITIALIZING,
-        .lastError = SENSOR_ERROR_NOT_READY
+        .health = {
+          .state = DEVICE_HEALTH_INITIALIZING,
+          .lastError = SENSOR_ERROR_NOT_READY
+        }
       };
       sensorSnapshots[index].serialNumber = device->uniqueId;
     }
@@ -376,24 +382,27 @@ static void temperatureSensorService_RecordResult(
   SensorError_TypeDef error,
   TickType_t now
 ) {
-  snapshot->lastAttempt = now;
+  snapshot->health.lastAttempt = now;
   if (status == SUCCESS) {
     snapshot->dataValid = pdTRUE;
-    snapshot->lastSuccess = now;
-    snapshot->consecutiveFailures = 0U;
-    snapshot->health = SENSOR_HEALTH_HEALTHY;
-    snapshot->lastError = SENSOR_ERROR_NONE;
+    snapshot->health.lastSuccess = now;
+    snapshot->health.consecutiveFailures = 0U;
+    snapshot->health.state = DEVICE_HEALTH_AVAILABLE;
+    snapshot->health.lastError = SENSOR_ERROR_NONE;
     return;
   }
 
-  if (snapshot->consecutiveFailures < UINT16_MAX) {
-    snapshot->consecutiveFailures++;
+  if (snapshot->health.consecutiveFailures < UINT16_MAX) {
+    snapshot->health.consecutiveFailures++;
   }
-  snapshot->lastError = error;
-  snapshot->health = (snapshot->consecutiveFailures >= SENSOR_FAILURE_THRESHOLD)
-    ? SENSOR_HEALTH_FAILED
-    : SENSOR_HEALTH_DEGRADED;
-  if (snapshot->health == SENSOR_HEALTH_FAILED) snapshot->dataValid = pdFALSE;
+  snapshot->health.lastError = (uint8_t)error;
+  snapshot->health.state =
+    (snapshot->health.consecutiveFailures >= SENSOR_FAILURE_THRESHOLD)
+      ? DEVICE_HEALTH_UNAVAILABLE
+      : DEVICE_HEALTH_DEGRADED;
+  if (snapshot->health.state == DEVICE_HEALTH_UNAVAILABLE) {
+    snapshot->dataValid = pdFALSE;
+  }
 }
 
 
@@ -418,12 +427,12 @@ static SensorError_TypeDef temperatureSensorService_MapDs18b20Error(
 static void temperatureSensorService_ApplyAge(
   SensorSnapshot_TypeDef* snapshot
 ) {
-  if ((snapshot->lastSuccess != 0U)
-      && ((snapshot->health == SENSOR_HEALTH_HEALTHY)
-        || (snapshot->health == SENSOR_HEALTH_DEGRADED))
-      && ((xTaskGetTickCount() - snapshot->lastSuccess)
+  if ((snapshot->health.lastSuccess != 0U)
+      && ((snapshot->health.state == DEVICE_HEALTH_AVAILABLE)
+        || (snapshot->health.state == DEVICE_HEALTH_DEGRADED))
+      && ((xTaskGetTickCount() - snapshot->health.lastSuccess)
         > pdMS_TO_TICKS(SENSOR_STALE_PERIOD_MS))) {
-    snapshot->health = SENSOR_HEALTH_STALE;
+    snapshot->health.state = DEVICE_HEALTH_STALE;
     snapshot->dataValid = pdFALSE;
   }
 }

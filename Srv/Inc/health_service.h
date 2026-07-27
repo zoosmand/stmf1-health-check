@@ -15,6 +15,7 @@
 #define __HEALTH_SERVICE_H
 
 #include "main.h"
+#include "device_health.h"
 
 /**
   * @brief Bit mask identifying services supervised by the health service.

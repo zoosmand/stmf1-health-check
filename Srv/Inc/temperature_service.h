@@ -15,6 +15,7 @@
 #define __TEMPERATURE_SERVICE_H
 
 #include "main.h"
+#include "device_health.h"
 
 #define SENSOR_SERVICE_MAX_DS18B20 6U
 #define SENSOR_SERVICE_MAX_DEVICES (SENSOR_SERVICE_MAX_DS18B20 + 2U)
@@ -39,18 +40,6 @@ typedef enum {
 } SensorCapability_TypeDef;
 
 /**
-  * @brief Availability and health states derived from periodic measurements.
-  */
-typedef enum {
-  SENSOR_HEALTH_INITIALIZING = 0U,
-  SENSOR_HEALTH_HEALTHY,
-  SENSOR_HEALTH_DEGRADED,
-  SENSOR_HEALTH_FAILED,
-  SENSOR_HEALTH_STALE,
-  SENSOR_HEALTH_MISSING
-} SensorHealthState_TypeDef;
-
-/**
   * @brief Errors recorded for the latest unsuccessful measurement.
   */
 typedef enum {
@@ -73,11 +62,7 @@ typedef enum {
   * @param temperature (int32_t) Temperature in hundredths of a degree Celsius.
   * @param pressure (uint32_t) Pressure in pascals.
   * @param humidity (uint32_t) Relative humidity in thousandths of percent.
-  * @param lastAttempt (TickType_t) Tick of the latest measurement attempt.
-  * @param lastSuccess (TickType_t) Tick of the latest successful measurement.
-  * @param consecutiveFailures (uint16_t) Failures since the last success.
-  * @param health (SensorHealthState_TypeDef) Derived sensor health state.
-  * @param lastError (SensorError_TypeDef) Latest measurement error.
+  * @param health (DeviceHealth_TypeDef) Latest availability history.
   */
 typedef struct {
   SensorModel_TypeDef model;
@@ -88,11 +73,7 @@ typedef struct {
   int32_t temperature;
   uint32_t pressure;
   uint32_t humidity;
-  TickType_t lastAttempt;
-  TickType_t lastSuccess;
-  uint16_t consecutiveFailures;
-  SensorHealthState_TypeDef health;
-  SensorError_TypeDef lastError;
+  DeviceHealth_TypeDef health;
 } SensorSnapshot_TypeDef;
 
 /**
