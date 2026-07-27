@@ -27,6 +27,12 @@ extern "C" {
 #define W25QXX_BLOCK_32K_SIZE       32768U
 #define W25QXX_BLOCK_64K_SIZE       65536U
 
+#define W25QXX_PACK_ADDRESS(block, sector, page) ( \
+  (((uint32_t)(block) & 0xffffU) << 8U) \
+  | (((uint32_t)(sector) & 0x0fU) << 4U) \
+  | ((uint32_t)(page) & 0x0fU) \
+)
+
 #define W25Q64_JEDEC_ID          0xEF4017UL
 #define W25Q64_CAPACITY_BYTES    0x00800000UL
 
@@ -45,7 +51,7 @@ extern "C" {
   * @param uniqueId (uint8_t[8]) Factory-programmed 64-bit unique identifier.
   * @param capacity (uint32_t) Flash capacity in bytes.
   * @param blockCount (uint16_t) Number of 64 KB blocks.
-  * @param spi (SPI_TypeDef*) SPI peripheral used by the flash.
+  * @param spi (SPI_TypeDef*) SPI peripheral; the current DMA mapping requires SPI2.
   * @param chipSelectPort (GPIO_TypeDef*) GPIO port controlling flash /CS.
   * @param chipSelectPin (uint16_t) GPIO pin number controlling flash /CS.
   */
@@ -62,6 +68,10 @@ typedef struct {
 /**
   * @brief Initialize and identify the W25Q64FV connected to SPI2.
   * @retval (ErrorStatus) SUCCESS when the expected JEDEC ID is detected.
+  *
+  * Initialization configures the software-controlled chip-select pin, reads
+  * the JEDEC and unique identifiers, establishes the device geometry, and
+  * performs the destructive startup self-test in the reserved final sector.
   */
 ErrorStatus W25Qxx_Init(void);
 
@@ -86,6 +96,9 @@ W25Qxx_TypeDef* W25Qxx_GetDevice(void);
   * @param buffer (uint8_t*) Destination buffer owned by the caller.
   * @param length (uint32_t) Number of bytes to read.
   * @retval (ErrorStatus) Status of the operation.
+  *
+  * The packed address identifies the starting 256-byte page. Reads may
+  * continue across page and sector boundaries up to the detected capacity.
   */
 ErrorStatus W25Qxx_Read(uint32_t address, uint8_t* buffer, uint32_t length);
 
@@ -96,7 +109,9 @@ ErrorStatus W25Qxx_Read(uint32_t address, uint8_t* buffer, uint32_t length);
   * @param length (uint32_t) Number of bytes to program.
   * @retval (ErrorStatus) Status of the operation.
   *
-  * The affected sectors must be erased before programming.
+  * The affected sectors must be erased before programming. The driver splits
+  * the transfer at every page boundary because a page-program command cannot
+  * cross a 256-byte page.
   */
 ErrorStatus W25Qxx_Write(
   uint32_t address,
@@ -109,6 +124,9 @@ ErrorStatus W25Qxx_Write(
   * @param address (uint32_t) Packed address; page bits are ignored.
   * @param sectorCount (uint32_t) Number of consecutive 4 KB sectors to erase.
   * @retval (ErrorStatus) Status of the operation.
+  *
+  * The implementation selects aligned 32 KB and 64 KB erase commands where
+  * possible and falls back to individual 4 KB sectors elsewhere.
   */
 ErrorStatus W25Qxx_Erase(uint32_t address, uint32_t sectorCount);
 
