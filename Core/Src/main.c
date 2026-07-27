@@ -35,6 +35,9 @@ int main(void) {
 
   /* Initialization of necessary peripherals */
   if (LED_Init(HEARTBEAT_PORT, HEARTBEAT_PIN) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_HEARTBEAT_LED_ERROR_BIT);
+  if ((Buzzer_Init() != SUCCESS) || (Buzzer_SelfTest() != SUCCESS)) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_BUZZER_ERROR_BIT);
+  }
   if (OneWire_Init(ONEWIRE_PORT, ONEWIRE_PIN) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_ONEWIRE_ERROR_BIT);
   if (USART_Init(USART1) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_USART1_ERROR_BIT);
   if ((SPI_Init(SPI1) != SUCCESS)
@@ -42,6 +45,12 @@ int main(void) {
       || (EthernetSPI_Init(ETH_RST_PORT, ETH_RST_PIN) != SUCCESS)
       || (SPI_AdjustConfiguration(SPI1) != SUCCESS)) {
     FLAG_SET(peripheralReadiness, PERIPHERAL_SPI1_ERROR_BIT);
+  }
+  if ((SPI_Init(SPI2) != SUCCESS)
+      || (SPI_AdjustConfiguration(SPI2) != SUCCESS)) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_SPI2_ERROR_BIT);
+  } else if (W25Qxx_Init() != SUCCESS) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_W25Q64_ERROR_BIT);
   }
   if (I2C_Init(I2C1) != SUCCESS) {
     FLAG_SET(peripheralReadiness, PERIPHERAL_I2C1_ERROR_BIT);
@@ -80,6 +89,7 @@ int main(void) {
   /* TCP command service */
   if (!FLAG_CHECK(peripheralReadiness, PERIPHERAL_SPI1_ERROR_BIT)) {
     TcpCommandService_Init();
+    HttpMonitorService_Init();
   }
 
   /* Run the internal health and watchdog service last. */
@@ -230,7 +240,10 @@ void SystemInit (void) {
   ));
 
   /* APB1 peripherals */
-  SET_BIT(RCC->APB1ENR, RCC_APB1ENR_I2C1EN);
+  SET_BIT(RCC->APB1ENR, (
+      RCC_APB1ENR_I2C1EN
+    | RCC_APB1ENR_SPI2EN
+  ));
 
   /* APB2 peripherals */
   SET_BIT(RCC->APB2ENR, (
@@ -239,6 +252,7 @@ void SystemInit (void) {
     | RCC_APB2ENR_IOPCEN
     | RCC_APB2ENR_USART1EN
     | RCC_APB2ENR_SPI1EN
+    | RCC_APB2ENR_TIM1EN
   ));
 
 

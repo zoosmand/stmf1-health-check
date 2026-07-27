@@ -40,9 +40,11 @@ extern "C" {
 #include "project_config.h"
 
 #include "gpio.h"
+#include "buzzer.h"
 #include "usart.h"
 #include "onewire.h"
 #include "spi.h"
+#include "w25qxx.h"
 #include "i2c.h"
 #include "whxxxx.h"
 #include "ssd13xx.h"
@@ -53,6 +55,7 @@ extern "C" {
 #include "health_service.h"
 #include "temperature_service.h"
 #include "tcp_service.h"
+#include "http_monitor_service.h"
 
 #include "wizchip_port.h"
 
@@ -73,6 +76,9 @@ extern __IO uint32_t peripheralReadiness;
 #define PERIPHERAL_BMX280_ERROR_BIT        6
 #define PERIPHERAL_BMX680_ERROR_BIT        7
 #define PERIPHERAL_SSD_DISPLAY_ERROR_BIT   8
+#define PERIPHERAL_SPI2_ERROR_BIT          9
+#define PERIPHERAL_W25Q64_ERROR_BIT        10
+#define PERIPHERAL_BUZZER_ERROR_BIT        11
 
 #ifdef __cplusplus
 }

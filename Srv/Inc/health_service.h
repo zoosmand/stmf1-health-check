@@ -15,6 +15,7 @@
 #define __HEALTH_SERVICE_H
 
 #include "main.h"
+#include "device_health.h"
 
 /**
   * @brief Bit mask identifying services supervised by the health service.
@@ -22,7 +23,8 @@
 typedef enum {
   HEALTH_COMPONENT_HEART_BEAT  = (1UL << 0U),
   HEALTH_COMPONENT_TEMPERATURE = (1UL << 1U),
-  HEALTH_COMPONENT_TCP         = (1UL << 2U)
+  HEALTH_COMPONENT_TCP         = (1UL << 2U),
+  HEALTH_COMPONENT_HTTP        = (1UL << 3U)
 } HealthComponent_TypeDef;
 
 /**

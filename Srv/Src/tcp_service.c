@@ -45,7 +45,7 @@ static ErrorStatus tcpCommandService_ParseSensorNumber(
   uint8_t*
 );
 static const char* tcpCommandService_ModelName(SensorModel_TypeDef);
-static const char* tcpCommandService_HealthName(SensorHealthState_TypeDef);
+static const char* tcpCommandService_HealthName(DeviceHealthState_TypeDef);
 static const char* tcpCommandService_ErrorName(SensorError_TypeDef);
 static void tcpCommandService_AppendText(char*, size_t, size_t*, const char*);
 static void tcpCommandService_AppendTemperature(char*, size_t, size_t*, int16_t);
@@ -80,11 +80,8 @@ static void tcpCommandService_Task(void* parameters) {
   (void) parameters;
 
   while (1) {
-    if (SPI_Enable(SPI1) == SUCCESS) {
-      TcpCommandService_Run();
-      tcpHealthService_Run();
-      (void) SPI_Disable(SPI1);
-    }
+    TcpCommandService_Run();
+    tcpHealthService_Run();
     HealthService_Report(HEALTH_COMPONENT_TCP);
     vTaskDelay(1U);
   }
@@ -533,27 +530,27 @@ static void tcpHealthService_ProcessCommand(
     return;
   }
 
-  if (snapshot.lastSuccess == 0U) {
+  if (snapshot.health.lastSuccess == 0U) {
     (void)snprintf(
       response,
       sizeof(response),
       "OK model:%s,state:%s,age_ms:unavailable,failures:%u,error:%s\r\n",
       tcpCommandService_ModelName(snapshot.model),
-      tcpCommandService_HealthName(snapshot.health),
-      snapshot.consecutiveFailures,
-      tcpCommandService_ErrorName(snapshot.lastError)
+      tcpCommandService_HealthName(snapshot.health.state),
+      snapshot.health.consecutiveFailures,
+      tcpCommandService_ErrorName((SensorError_TypeDef)snapshot.health.lastError)
     );
   } else {
-    TickType_t age = xTaskGetTickCount() - snapshot.lastSuccess;
+    TickType_t age = xTaskGetTickCount() - snapshot.health.lastSuccess;
     (void)snprintf(
       response,
       sizeof(response),
       "OK model:%s,state:%s,age_ms:%lu,failures:%u,error:%s\r\n",
       tcpCommandService_ModelName(snapshot.model),
-      tcpCommandService_HealthName(snapshot.health),
+      tcpCommandService_HealthName(snapshot.health.state),
       (unsigned long)(age * portTICK_PERIOD_MS),
-      snapshot.consecutiveFailures,
-      tcpCommandService_ErrorName(snapshot.lastError)
+      snapshot.health.consecutiveFailures,
+      tcpCommandService_ErrorName((SensorError_TypeDef)snapshot.health.lastError)
     );
   }
   (void)tcpHealthService_Send(response);
@@ -600,15 +597,15 @@ static const char* tcpCommandService_ModelName(SensorModel_TypeDef model) {
 
 // -------------------------------------------------------------
 static const char* tcpCommandService_HealthName(
-  SensorHealthState_TypeDef health
+  DeviceHealthState_TypeDef health
 ) {
   switch (health) {
-    case SENSOR_HEALTH_INITIALIZING: return ("initializing");
-    case SENSOR_HEALTH_HEALTHY:      return ("healthy");
-    case SENSOR_HEALTH_DEGRADED:     return ("degraded");
-    case SENSOR_HEALTH_FAILED:       return ("failed");
-    case SENSOR_HEALTH_STALE:        return ("stale");
-    case SENSOR_HEALTH_MISSING:      return ("missing");
+    case DEVICE_HEALTH_INITIALIZING: return ("initializing");
+    case DEVICE_HEALTH_AVAILABLE:    return ("healthy");
+    case DEVICE_HEALTH_DEGRADED:     return ("degraded");
+    case DEVICE_HEALTH_UNAVAILABLE:  return ("failed");
+    case DEVICE_HEALTH_STALE:        return ("stale");
+    case DEVICE_HEALTH_MISSING:      return ("missing");
     default:                         return ("unknown");
   }
 }

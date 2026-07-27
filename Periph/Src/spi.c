@@ -74,8 +74,16 @@ ErrorStatus SPI_Init(SPI_TypeDef* spi) {
 
 ErrorStatus SPI_AdjustConfiguration(SPI_TypeDef* spi) {
 
+  if ((spi != SPI1) && (spi != SPI2)) return (ERROR);
+
   MODIFY_REG(spi->CR1, (SPI_CR1_BR_Msk | SPI_CR1_DFF_Msk), 0);
-  PREG_SET(spi->CR2, SPI_CR2_SSOE_Pos);
+
+  if (spi == SPI2) {
+    SET_BIT(spi->CR1, SPI_CR1_SSM | SPI_CR1_SSI);
+    PREG_CLR(spi->CR2, SPI_CR2_SSOE_Pos);
+  } else {
+    PREG_SET(spi->CR2, SPI_CR2_SSOE_Pos);
+  }
 
   return (SUCCESS);
 }
