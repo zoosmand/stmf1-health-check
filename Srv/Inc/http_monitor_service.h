@@ -18,7 +18,8 @@
 #include "device_health.h"
 
 #define HTTP_MONITOR_HOST "hvm-a.ic.local"
-#define HTTP_MONITOR_PORT 3000U
+#define HTTP_MONITOR_PORT_NUMBER 3000
+#define HTTP_MONITOR_PORT ((uint16_t)HTTP_MONITOR_PORT_NUMBER)
 #define HTTP_MONITOR_PATH "/"
 
 typedef enum {

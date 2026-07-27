@@ -22,6 +22,9 @@
 #define HTTP_MONITOR_LINE_SIZE          64U
 #define HTTP_MONITOR_FAILURE_THRESHOLD   3U
 
+#define HTTP_MONITOR_STRINGIFY_(value) #value
+#define HTTP_MONITOR_STRINGIFY(value) HTTP_MONITOR_STRINGIFY_(value)
+
 static HttpMonitorSnapshot_TypeDef httpMonitorSnapshot = {
   .health = {
     .state = DEVICE_HEALTH_INITIALIZING
@@ -69,6 +72,7 @@ void HttpMonitorService_Init(void) {
   );
   if (dnsTimer != NULL) (void)xTimerStart(dnsTimer, 0U);
 
+  HealthService_Register(HEALTH_COMPONENT_HTTP);
   (void)xTaskCreateStatic(
     httpMonitorService_Task,
     "HTTP Monitor",
@@ -110,6 +114,7 @@ static void httpMonitorService_Task(void* parameters) {
     );
 
     httpMonitorService_Record(result, error, address, statusCode);
+    HealthService_Report(HEALTH_COMPONENT_HTTP);
     printf(
       "HTTP check: %s, status:%u, error:%u\n",
       (result == SUCCESS) ? "OK" : "FAILED",
@@ -142,9 +147,10 @@ static ErrorStatus httpMonitorService_Check(
   HttpMonitorError_TypeDef* error
 ) {
   static const uint8_t host[] = HTTP_MONITOR_HOST;
-  static uint8_t request[] =
+  static const uint8_t request[] =
     "OPTIONS " HTTP_MONITOR_PATH " HTTP/1.1\r\n"
-    "Host: " HTTP_MONITOR_HOST ":3000\r\n"
+    "Host: " HTTP_MONITOR_HOST ":"
+      HTTP_MONITOR_STRINGIFY(HTTP_MONITOR_PORT_NUMBER) "\r\n"
     "Connection: close\r\n"
     "\r\n";
   int32_t result;
@@ -171,7 +177,7 @@ static ErrorStatus httpMonitorService_Check(
 
   result = send(
     HTTP_MONITOR_SOCKET,
-    request,
+    (uint8_t*)request,
     (uint16_t)(sizeof(request) - 1U)
   );
   if (result != (int32_t)(sizeof(request) - 1U)) {
