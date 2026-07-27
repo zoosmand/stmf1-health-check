@@ -35,6 +35,9 @@ int main(void) {
 
   /* Initialization of necessary peripherals */
   if (LED_Init(HEARTBEAT_PORT, HEARTBEAT_PIN) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_HEARTBEAT_LED_ERROR_BIT);
+  if ((Buzzer_Init() != SUCCESS) || (Buzzer_SelfTest() != SUCCESS)) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_BUZZER_ERROR_BIT);
+  }
   if (OneWire_Init(ONEWIRE_PORT, ONEWIRE_PIN) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_ONEWIRE_ERROR_BIT);
   if (USART_Init(USART1) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_USART1_ERROR_BIT);
   if ((SPI_Init(SPI1) != SUCCESS)
@@ -248,6 +251,7 @@ void SystemInit (void) {
     | RCC_APB2ENR_IOPCEN
     | RCC_APB2ENR_USART1EN
     | RCC_APB2ENR_SPI1EN
+    | RCC_APB2ENR_TIM1EN
   ));
 
 

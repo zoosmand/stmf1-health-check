@@ -40,6 +40,7 @@ extern "C" {
 #include "project_config.h"
 
 #include "gpio.h"
+#include "buzzer.h"
 #include "usart.h"
 #include "onewire.h"
 #include "spi.h"
@@ -76,6 +77,7 @@ extern __IO uint32_t peripheralReadiness;
 #define PERIPHERAL_SSD_DISPLAY_ERROR_BIT   8
 #define PERIPHERAL_SPI2_ERROR_BIT          9
 #define PERIPHERAL_W25Q64_ERROR_BIT        10
+#define PERIPHERAL_BUZZER_ERROR_BIT        11
 
 #ifdef __cplusplus
 }
