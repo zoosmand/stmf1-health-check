@@ -2,7 +2,6 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
-    "__node_handle": "c",
     "*.s": "arm",
     "*.S": "arm",
     "*.inc": "arm"

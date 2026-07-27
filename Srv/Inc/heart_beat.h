@@ -1,12 +1,13 @@
 /**
   ******************************************************************************
   * @file           : heart_beat.h
-  * @brief          : Header for heart_beat.c file.
-  *                   This file contains the common defines for LED blinking 
-  *                   that represent the system health.
+  * @brief          : Heartbeat LED service interface.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 22.09.2025 02:40:44 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -22,14 +23,16 @@
 #include "main.h"
 
 
+#define HEARTBEAT_PORT   GPIOC
+#define HEARTBEAT_PIN    GPIO_PIN_13
+
+
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
-  * @brief  Heartbeat LED blinking service
-  * @param  none
-  * @retval none
- */
-void HeartBeatService(void);
+  * @brief Create the task that displays system activity on the heartbeat LED.
+  */
+void HeartBeatService_Init(void);
 
 
 #ifdef __cplusplus

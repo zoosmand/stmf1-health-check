@@ -59,5 +59,13 @@ dkms.conf
 
 # Builds
 build/
+build*/
+test/*.log
 Core/.DS_Store
 .DS_Store
+
+# Log files
+*.log
+
+# AI configuration files
+.claude

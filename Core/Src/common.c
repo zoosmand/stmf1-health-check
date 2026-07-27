@@ -1,10 +1,13 @@
 /**
   ******************************************************************************
   * @file           : common.c
-  * @brief          : Common used routines and printf() supply
+  * @brief          : Common routines and printf output routing.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 20.09.2025 08:34:08 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -24,7 +27,7 @@ __STATIC_INLINE void _putc(uint8_t ch);
   * @param  None
   * @retval None
   */
-void Error_Handler(void) {
+void __attribute__((weak)) System_ErrorHandler(void) {
   while (1) {
     //
   }
@@ -66,17 +69,27 @@ __STATIC_INLINE uint32_t ITM_SendCharChannel(uint32_t ch, uint32_t channel) {
 __STATIC_INLINE void _putc(uint8_t ch) {
   if (ch == '\n') _putc('\r');
 
-  #ifdef SWO_ITM
-    ITM_SendCharChannel(ch, SWO_ITM);
- #endif
+  #ifdef ITM_OUT
+    ITM_SendCharChannel(ch, ITM_OUT);
+  #endif
 
- #ifdef SWO_DSPL
-    PrintCharDisplay(ch, SWO_DSPL);
- #endif
+  #if defined(USE_WH_DISPLAY) || defined(USE_SSD_DISPLAY)
+    if (!FLAG_CHECK(peripheralReadiness, PERIPHERAL_I2C1_ERROR_BIT)
+        && !FLAG_CHECK(
+          peripheralReadiness,
+          #if defined(USE_WH_DISPLAY)
+            PERIPHERAL_WH_DISPLAY_ERROR_BIT
+          #else
+            PERIPHERAL_SSD_DISPLAY_ERROR_BIT
+          #endif
+        )) {
+      DSPL_OUT(ch);
+    }
+  #endif
 
- #ifdef SWO_USART
-    while (!(PREG_CHECK(SWO_USART->SR, USART_SR_TXE_Pos)));
-    SWO_USART->DR = ch;
+  #ifdef USART_OUT
+    while (!(PREG_CHECK(USART_OUT->SR, USART_SR_TXE_Pos)));
+    USART_OUT->DR = ch;
   #endif
 }
 
@@ -110,8 +123,35 @@ int _write(int32_t file, char *ptr, int32_t len) {
   * @retval None
   */
 #define assert_param(expr) ((expr) ? (void)0U : assert_failed((uint8_t *)__FILE__, __LINE__))
+
 /* Exported functions ------------------------------------------------------- */
 void assert_failed(uint8_t *file, uint32_t line);
 #else
 #define assert_param(expr) ((void)0U)
 #endif /* USE_FULL_ASSERT */
+
+
+
+
+__STATIC_INLINE void _DWT_Init(void) {
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCEVTENA_Msk | DWT_CTRL_CYCCNTENA_Msk;
+  __DSB();
+  __ISB();
+}
+
+
+
+void Delay_Microseconds(uint32_t us) {
+  _DWT_Init();
+  uint32_t const start = DWT->CYCCNT;
+  uint32_t const ticks = us * (configCPU_CLOCK_HZ / 1000000U);
+  while ((READ_REG(DWT->CYCCNT) - start) < ticks) { __asm volatile("nop"); }
+  DWT->CTRL &= ~(DWT_CTRL_CYCEVTENA_Msk | DWT_CTRL_CYCCNTENA_Msk);
+}
+
+
+
+void Delay_Milliseconds(uint32_t ms) {
+  Delay_Microseconds(ms * 1000);
+}

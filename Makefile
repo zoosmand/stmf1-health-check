@@ -25,6 +25,9 @@ OPT = -Og
 # platform
 ARCH := $(shell uname -m)
 SYS := $(shell uname -s)
+# output
+OUTPUT = 1
+DISPLAY = SSD
 
 #######################################
 # paths
@@ -42,7 +45,11 @@ $(wildcard Periph/Src/*.c) \
 $(wildcard Srv/Src/*.c) \
 $(wildcard FreeRTOS-Kernel/*.c) \
 $(wildcard FreeRTOS-Kernel/portable/GCC/ARM_CM3/*.c) \
-FreeRTOS-Kernel/portable/MemMang/heap_4.c
+FreeRTOS-Kernel/portable/MemMang/heap_4.c \
+$(wildcard Ethernet/*.c) \
+$(wildcard Ethernet/W5500/*.c) \
+$(wildcard Ethernet/DHCP/*.c) \
+$(wildcard Ethernet/DNS/*.c)
 
 # ASM sources
 ASM_SOURCES =  \
@@ -105,7 +112,8 @@ C_DEFS =  \
 -DVDD_VALUE=3300 \
 -DPREFETCH_ENABLE=1 \
 -DSTM32F103xB \
--DUSE_FULL_ASSERT
+-DUSE_FULL_ASSERT \
+-DUSART_OUT=USART1
 
 # AS defines
 AS_DEFS = $(C_DEFS) \
@@ -121,6 +129,7 @@ C_INCLUDES =  \
 -IDrivers/CMSIS/Include \
 -IFreeRTOS-Kernel/include \
 -IFreeRTOS-Kernel/portable/GCC/ARM_CM3 \
+-IEthernet
 
 # AS includes
 AS_INCLUDES = $(C_INCLUDES)
@@ -133,16 +142,24 @@ CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-
 ifeq ($(DEBUG), 1)
 # CFLAGS += -g -gdwarf-2 -D CMAKE_CXX_FLAGS_RELEASE="-Wa,-mimplicit-it=thumb"
 # CFLAGS += -g -gdwarf-2 -Wextra -pedantic
-CFLAGS += -g -gdwarf-2 -DDEBUG
-ASFLAGS += -g -gdwarf-2 -DDEBUG
+DEBUGFLAGS = -g -gdwarf-2 -DDEBUG
+CFLAGS += $(DEBUGFLAGS)
+ASFLAGS += $(DEBUGFLAGS)
 endif
 
+ifeq ($(OUTPUT), 1)
+ifeq ($(DISPLAY), SSD)
+OUTPUTFLAGS = -DUSE_SSD_DISPLAY
+else
+OUTPUTFLAGS = -DUSE_WH_DISPLAY
+endif
 ifeq ($(SYS), Darwin)
-CFLAGS += -DSWO_ITM=0
-ASFLAGS += -DSWO_ITM=0
+OUTPUTFLAGS += -DITM_OUT=0 
 else ifeq ($(SYS), Linux)
-CFLAGS += -DSWO_USART=USART1
-ASFLAGS += -DSWO_USART=USART1
+OUTPUTFLAGS += -DUSART_OUT=USART1
+endif
+CFLAGS += $(OUTPUTFLAGS)
+ASFLAGS += $(OUTPUTFLAGS)
 endif
 
 
@@ -199,7 +216,7 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(BIN) $< $@	
 	
 $(BUILD_DIR):
-	mkdir $@		
+	mkdir -p $@
 
 #######################################
 # clean up

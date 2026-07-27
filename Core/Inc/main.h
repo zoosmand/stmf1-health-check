@@ -1,11 +1,13 @@
 /**
   ******************************************************************************
   * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
+  * @brief          : Main application declarations and module integration.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 20.09.2025 08:34:08 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -27,7 +29,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <unistd.h>
+// #include <unistd.h>
 
 #include "misc.h"
 #include "stm32f103xb.h"
@@ -35,42 +37,51 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 #include "common.h"
 #include "stm32f10x_it.h"
+#include "project_config.h"
 
-#include "led.h"
+#include "gpio.h"
+#include "buzzer.h"
 #include "usart.h"
+#include "onewire.h"
+#include "spi.h"
+#include "w25qxx.h"
+#include "i2c.h"
+#include "whxxxx.h"
+#include "ssd13xx.h"
+#include "bmx280.h"
+#include "bmx680.h"
 
 #include "heart_beat.h"
+#include "health_service.h"
+#include "temperature_service.h"
+#include "tcp_service.h"
+#include "http_monitor_service.h"
+
+#include "wizchip_port.h"
+
 
 /* Exported constants --------------------------------------------------------*/
 
 /* Exported variables --------------------------------------------------------*/
-// __IO uint32_t _PREG_;
+extern __IO uint32_t peripheralReadiness;
 
 /* Private defines -----------------------------------------------------------*/
 /* Peripherals readiness flags */
-#define _PR_HEART_BEAT_LED    0
-#define _PR_USART             1
-
-/* Exported functions prototypes ---------------------------------------------*/
-
-
-/* Service functions related to the CM3 BitBand */
-
-/**
- * 
- */
-extern void Set_BitBandVal(uint32_t, uint32_t);
-
-/**
- * 
- */
-extern uint32_t Get_BitBandVal(uint32_t);
-
-
+#define PERIPHERAL_HEARTBEAT_LED_ERROR_BIT 0
+#define PERIPHERAL_USART1_ERROR_BIT        1
+#define PERIPHERAL_ONEWIRE_ERROR_BIT       2
+#define PERIPHERAL_SPI1_ERROR_BIT          3
+#define PERIPHERAL_I2C1_ERROR_BIT          4
+#define PERIPHERAL_WH_DISPLAY_ERROR_BIT    5
+#define PERIPHERAL_BMX280_ERROR_BIT        6
+#define PERIPHERAL_BMX680_ERROR_BIT        7
+#define PERIPHERAL_SSD_DISPLAY_ERROR_BIT   8
+#define PERIPHERAL_SPI2_ERROR_BIT          9
+#define PERIPHERAL_W25Q64_ERROR_BIT        10
+#define PERIPHERAL_BUZZER_ERROR_BIT        11
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __MAIN_H */
-

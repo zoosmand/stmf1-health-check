@@ -1,10 +1,13 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Main program body
+  * @brief          : Application entry point and system initialization.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 20.09.2025 08:34:08 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
 
@@ -12,7 +15,7 @@
 #include "main.h"
 
 /* Global variables ----------------------------------------------------------*/
-__IO uint32_t _PREG_ = 0;
+__IO uint32_t peripheralReadiness = 0;
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -31,14 +34,66 @@ __IO uint32_t _PREG_ = 0;
 int main(void) {
 
   /* Initialization of necessary peripherals */
-  if (!LED_Init(GPIOC, GPIO_PIN_13)) FLAG_SET(_PREG_, _PR_HEART_BEAT_LED);
-  if (!USART_Init(USART1)) FLAG_SET(_PREG_, _PR_USART);
+  if (LED_Init(HEARTBEAT_PORT, HEARTBEAT_PIN) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_HEARTBEAT_LED_ERROR_BIT);
+  if ((Buzzer_Init() != SUCCESS) || (Buzzer_SelfTest() != SUCCESS)) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_BUZZER_ERROR_BIT);
+  }
+  if (OneWire_Init(ONEWIRE_PORT, ONEWIRE_PIN) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_ONEWIRE_ERROR_BIT);
+  if (USART_Init(USART1) != SUCCESS) FLAG_SET(peripheralReadiness, PERIPHERAL_USART1_ERROR_BIT);
+  if ((SPI_Init(SPI1) != SUCCESS)
+      || (EthernetSPI_Init(ETH_CS_PORT, ETH_CS_PIN) != SUCCESS)
+      || (EthernetSPI_Init(ETH_RST_PORT, ETH_RST_PIN) != SUCCESS)
+      || (SPI_AdjustConfiguration(SPI1) != SUCCESS)) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_SPI1_ERROR_BIT);
+  }
+  if ((SPI_Init(SPI2) != SUCCESS)
+      || (SPI_AdjustConfiguration(SPI2) != SUCCESS)) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_SPI2_ERROR_BIT);
+  } else if (W25Qxx_Init() != SUCCESS) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_W25Q64_ERROR_BIT);
+  }
+  if (I2C_Init(I2C1) != SUCCESS) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_I2C1_ERROR_BIT);
+  } else {
+    #if defined(USE_WH_DISPLAY)
+      if (WHxxxx_Init(I2C1, WHXXXX_I2C_ADDRESS) != SUCCESS) {
+        FLAG_SET(peripheralReadiness, PERIPHERAL_WH_DISPLAY_ERROR_BIT);
+      }
+    #elif defined(USE_SSD_DISPLAY)
+      static SSD13xx_TypeDef ssdDisplay;
+      if (SSD13xx_Init(
+            &ssdDisplay,
+            I2C1,
+            SSD13XX_I2C_ADDR,
+            SSD_DSPL_MODEL,
+            SSD_DSPL_FONT
+          ) != SUCCESS) {
+        FLAG_SET(peripheralReadiness, PERIPHERAL_SSD_DISPLAY_ERROR_BIT);
+      }
+    #endif
+  }
 
-  printf("Peripherals rediness list: 0x%08lx\n", _PREG_);
-  
+  if (!FLAG_CHECK(peripheralReadiness, PERIPHERAL_SPI1_ERROR_BIT) && (W5500_Init() != 0)) {
+    FLAG_SET(peripheralReadiness, PERIPHERAL_SPI1_ERROR_BIT);
+  }
+
+  printf("Peripherals readiness list: 0x%08lx\n", peripheralReadiness);
   
   /* Run the Heartbeat Service */
-  HeartBeatService();
+  HeartBeatService_Init();
+
+  /* Run the Temperature Measurement Service */
+  OneWireBusConfiguration_Init();
+  TemperatureSensorService_Init();
+
+  /* TCP command service */
+  if (!FLAG_CHECK(peripheralReadiness, PERIPHERAL_SPI1_ERROR_BIT)) {
+    TcpCommandService_Init();
+    HttpMonitorService_Init();
+  }
+
+  /* Run the internal health and watchdog service last. */
+  HealthService_Init();
 
   /* Start the scheduler. */
   vTaskStartScheduler();
@@ -55,6 +110,9 @@ int main(void) {
          * or pxCurrentTCB if pcTaskName has itself been corrupted. */
         (void) xTask;
         (void) pcTaskName;
+        HealthService_LatchFailure();
+        taskDISABLE_INTERRUPTS();
+        while (1);
     }
 
 #endif /* #if (configCHECK_FOR_STACK_OVERFLOW > 0) */
@@ -86,6 +144,7 @@ int main(void) {
   * @retval None
   */
 void SystemInit (void) {
+  uint32_t timeout;
 
   #if (PREFETCH_ENABLE != 0)
     PREG_SET(FLASH->ACR, FLASH_ACR_PRFTBE_Pos);
@@ -106,7 +165,7 @@ void SystemInit (void) {
   /* Flash */
   MODIFY_REG(FLASH->ACR, FLASH_ACR_LATENCY, FLASH_ACR_LATENCY_1);
   if (READ_BIT(FLASH->ACR, FLASH_ACR_LATENCY) != FLASH_ACR_LATENCY_1) {
-    Error_Handler();
+    System_ErrorHandler();
   }
 
   /* JTAG-DP disabled and SW-DP enabled */
@@ -115,11 +174,15 @@ void SystemInit (void) {
 
   /* HSE enable and wait until it runs */
   PREG_SET(RCC->CR, RCC_CR_HSEON_Pos);
-  while (!(PREG_CHECK(RCC->CR, RCC_CR_HSERDY_Pos)));
+  timeout = 72000000U;
+  while (!(PREG_CHECK(RCC->CR, RCC_CR_HSERDY_Pos)) && (--timeout != 0U));
+  if (timeout == 0U) System_ErrorHandler();
 
   /* LSI enable and wait until it runs */
   PREG_SET(RCC->CSR, RCC_CSR_LSION_Pos);
-  while (!(PREG_CHECK(RCC->CR, RCC_CSR_LSIRDY_Pos)));
+  timeout = 72000000U;
+  while (!(PREG_CHECK(RCC->CSR, RCC_CSR_LSIRDY_Pos)) && (--timeout != 0U));
+  if (timeout == 0U) System_ErrorHandler();
 
   /* Enable backup registers access */
   PREG_SET(PWR->CR, PWR_CR_DBP_Pos);
@@ -130,7 +193,9 @@ void SystemInit (void) {
 
   /* LSE enable and wait until it runs */
   PREG_SET(RCC->BDCR, RCC_BDCR_LSEON_Pos);
-  while (!(PREG_CHECK(RCC->CR, RCC_BDCR_LSERDY_Pos)));
+  timeout = 360000000U;
+  while (!(PREG_CHECK(RCC->BDCR, RCC_BDCR_LSERDY_Pos)) && (--timeout != 0U));
+  if (timeout == 0U) System_ErrorHandler();
 
   /* RTC Source is LSE */
   MODIFY_REG(RCC->BDCR, RCC_BDCR_RTCSEL, RCC_BDCR_RTCSEL_0);
@@ -144,7 +209,9 @@ void SystemInit (void) {
 
   /* PLL enable and wait until it runs */
   PREG_SET(RCC->CR, RCC_CR_PLLON_Pos);
-  while (!(PREG_CHECK(RCC->CR, RCC_CR_PLLRDY_Pos)));
+  timeout = 72000000U;
+  while (!(PREG_CHECK(RCC->CR, RCC_CR_PLLRDY_Pos)) && (--timeout != 0U));
+  if (timeout == 0U) System_ErrorHandler();
 
   /* AHB clock isn't divided */
   /* APB1 clock divided by 2 */
@@ -153,11 +220,13 @@ void SystemInit (void) {
 
   /* set PLL as sysclock source and wait until it runs */
   MODIFY_REG(RCC->CFGR, RCC_CFGR_SW, RCC_CFGR_SW_PLL);
-  while (READ_BIT(RCC->CFGR, RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
+  timeout = 72000000U;
+  while ((READ_BIT(RCC->CFGR, RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) && (--timeout != 0U));
+  if (timeout == 0U) System_ErrorHandler();
 
 
 
-
+  SET_BIT(CoreDebug->DEMCR, CoreDebug_DEMCR_TRCENA_Msk);
 
 
   /*----------------------------------------------------------------------------*/
@@ -171,17 +240,19 @@ void SystemInit (void) {
   ));
 
   /* APB1 peripherals */
-  // SET_BIT(RCC->APB1ENR, (
-  //   RCC_APB1ENR_TIM7EN
-  // ));
+  SET_BIT(RCC->APB1ENR, (
+      RCC_APB1ENR_I2C1EN
+    | RCC_APB1ENR_SPI2EN
+  ));
 
   /* APB2 peripherals */
   SET_BIT(RCC->APB2ENR, (
       RCC_APB2ENR_IOPAEN
+    | RCC_APB2ENR_IOPBEN
     | RCC_APB2ENR_IOPCEN
-    | RCC_APB2ENR_IOPEEN
     | RCC_APB2ENR_USART1EN
     | RCC_APB2ENR_SPI1EN
+    | RCC_APB2ENR_TIM1EN
   ));
 
 
@@ -195,7 +266,4 @@ void SystemInit (void) {
     ));
   #endif /* DEBUG */
 
-
-
 }
-

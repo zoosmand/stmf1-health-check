@@ -16,7 +16,8 @@
             "${workspaceRoot}/Periph/Inc",
             "${workspaceRoot}/Srv/Inc",
             "${workspaceRoot}/FreeRTOS-Kernel/include",
-            "${workspaceRoot}/FreeRTOS-Kernel/portable/GCC/ARM_CM3"
+            "${workspaceRoot}/FreeRTOS-Kernel/portable/GCC/ARM_CM3",
+            "${workspaceRoot}/Ethernet"
          ],
          "defines": [
             "DEBUG",
@@ -32,7 +33,10 @@
             "VDD_VALUE=3300",
             "PREFETCH_ENABLE=1",
             "STM32F103xB",
-            "SWO_ITM=0"
+            // "ITM_OUT=0",
+            // "USE_WH_DISPLAY",
+            "USE_SSD_DISPLAY",
+            "USART_OUT=USART1"
          ],
          "intelliSenseMode": "macos-clang-arm64",
          "cStandard": "c23",
@@ -79,7 +83,8 @@
             "VDD_VALUE=3300",
             "PREFETCH_ENABLE=1",
             "STM32F103xB",
-            "SWO_USART=USART1"
+            "USART_OUT=USART1",
+            "DSPL_OUT=putc_dspl_wh2004"
          ],
          "intelliSenseMode": "linux-gcc-x64",
          "cStandard": "c23",

@@ -1,12 +1,13 @@
 /**
   ******************************************************************************
   * @file           : usart.h
-  * @brief          : Header for usart.c file.
-  *                   This file contains the common defines for the USART
-  *                   initialization functions.
+  * @brief          : USART peripheral interface.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 22.09.2025 02:40:44 PM
   ******************************************************************************
   * @attention
-  *
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
   ******************************************************************************
   */
  
@@ -33,7 +34,7 @@
   * @param  port: pointer to the USART port instance
   * @retval (int) Status of operation (0 = success)
   */
-int USART_Init(USART_TypeDef*);
+ErrorStatus USART_Init(USART_TypeDef*);
 
 
 #ifdef __cplusplus
