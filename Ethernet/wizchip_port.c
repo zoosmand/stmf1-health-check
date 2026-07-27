@@ -1,182 +1,277 @@
-/*
- * wizchip_port.c
- *
- *  Created on: Oct 27, 2025
- *      Author: controllerstech
- */
+/**
+  ******************************************************************************
+  * @file           : wizchip_port.c
+  * @brief          : W5500 board integration and network configuration.
+  * @project        : STM32F1 Health Check Device
+  * @platform       : STMicroelectronics STM32F103C8
+  * @created        : 27.10.2025
+  ******************************************************************************
+  * @attention
+  * @copyright  : 2017-2026, Dmitry Slobodchikov
+  ******************************************************************************
+  */
 
 #include "main.h"
 #include "wizchip_conf.h"
-#include "stdio.h"
-#include "string.h"
 #include "socket.h"
-#include "stdbool.h"
 #include "DHCP/dhcp.h"
 #include "DNS/dns.h"
+#include <stdbool.h>
+#include <string.h>
 
-#define USE_DHCP  1
+#define W5500_USE_DHCP             1U
+#define W5500_DHCP_SOCKET          7U
+#define W5500_DNS_SOCKET           6U
+#define W5500_DHCP_RETRIES        20U
+#define W5500_LINK_RETRIES        10U
+#define W5500_DHCP_BUFFER_SIZE    548U
 
-wiz_NetInfo netInfo = {
-    .mac = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
-    .ip = {192, 168, 1, 10},
-    .sn = {255, 255, 255, 0},
-    .gw = {192, 168, 1, 1},
-    .dns = {8, 8, 8, 8},
-#if USE_DHCP
-	.dhcp = NETINFO_DHCP
+#define W5500_ERROR_MUTEX          -1
+#define W5500_ERROR_CHIP_INIT      -2
+#define W5500_ERROR_VERSION        -3
+#define W5500_ERROR_LINK            1
+
+#define W5500_SELECT()  PIN_L(ETH_CS_PORT, ETH_CS_PIN)
+#define W5500_RELEASE() PIN_H(ETH_CS_PORT, ETH_CS_PIN)
+#define W5500_RESET_L() PIN_L(ETH_RST_PORT, ETH_RST_PIN)
+#define W5500_RESET_H() PIN_H(ETH_RST_PORT, ETH_RST_PIN)
+
+static wiz_NetInfo w5500Network = {
+  .mac = {0xaaU, 0xbbU, 0xccU, 0xddU, 0xeeU, 0xffU},
+  .ip = {192U, 168U, 1U, 10U},
+  .sn = {255U, 255U, 255U, 0U},
+  .gw = {192U, 168U, 1U, 1U},
+  .dns = {8U, 8U, 8U, 8U},
+#if W5500_USE_DHCP
+  .dhcp = NETINFO_DHCP
 #else
-    .dhcp = NETINFO_STATIC
+  .dhcp = NETINFO_STATIC
 #endif
 };
 
-/*************************************************   NO Changes After This   ***************************************************************/
+static StaticSemaphore_t w5500BusMutexStorage;
+static SemaphoreHandle_t w5500BusMutex;
 
-#define W5500_CS_LOW()     PIN_L(ETH_CS_PORT, ETH_CS_PIN);
-#define W5500_CS_HIGH()    PIN_H(ETH_CS_PORT, ETH_CS_PIN);
-#define W5500_RST_LOW()    PIN_L(ETH_RST_PORT, ETH_RST_PIN);
-#define W5500_RST_HIGH()   PIN_H(ETH_RST_PORT, ETH_RST_PIN);
-
-
-// SPI transmit/receive
-void W5500_Select(void)   { W5500_CS_LOW(); }
-void W5500_Unselect(void) { W5500_CS_HIGH(); }
-
-uint8_t W5500_ReadByte(void)
-{
-    uint8_t rx;
-    SPI_Read8(SPI1, &rx, 1);
-    return rx;
-}
-
-void W5500_WriteByte(uint8_t byte)
-{
-    SPI_Write8(SPI1, &byte, 1);
-}
-
-
-#if USE_DHCP
-volatile bool ip_assigned = false;
-#define DHCP_SOCKET   7  // last available socket
-
-uint8_t DHCP_buffer[548];
-
-
-void Callback_IPAssigned(void) {
-    ip_assigned = true;
-}
-
-void Callback_IPConflict(void) {
-    ip_assigned = false;
-}
+#if W5500_USE_DHCP
+static volatile bool w5500AddressAssigned;
+static uint8_t w5500DhcpBuffer[W5500_DHCP_BUFFER_SIZE];
 #endif
 
-#define DNS_SOCKET	  6  // 2nd last socket
-uint8_t DNS_buffer[512];
+static uint8_t w5500DnsBuffer[MAX_DNS_BUF_SIZE];
 
-int W5500_Init(void)
-{
+static void w5500_Select(void);
+static void w5500_Release(void);
+static uint8_t w5500_ReadByte(void);
+static void w5500_WriteByte(uint8_t byte);
+static void w5500_Reset(void);
+static ErrorStatus w5500_CheckIdentity(void);
+static ErrorStatus w5500_WaitForLink(void);
+static void w5500_ConfigureNetwork(void);
+static void w5500_PrintNetwork(void);
 
-    SPI_Enable(SPI1);
-    
-    uint8_t memsize[2][8] = {{2,2,2,2,2,2,2,2},{2,2,2,2,2,2,2,2}};
+#if W5500_USE_DHCP
+static void w5500_AddressAssigned(void);
+static void w5500_AddressConflict(void);
+#endif
 
-    /***** Reset Sequence  *****/
-    W5500_RST_LOW();
-    // HAL_Delay(50);
-    Delay_Milliseconds(50);
-    W5500_RST_HIGH();
-    Delay_Milliseconds(200);
-    // HAL_Delay(200);
 
-    /***** Register callbacks  *****/
-    reg_wizchip_cs_cbfunc(W5500_Select, W5500_Unselect);
-    reg_wizchip_spi_cbfunc(W5500_ReadByte, W5500_WriteByte);
+// -------------------------------------------------------------
+int W5500_Init(void) {
+  static const uint8_t socketMemory[2][8] = {
+    {2U, 2U, 2U, 2U, 2U, 2U, 2U, 2U},
+    {2U, 2U, 2U, 2U, 2U, 2U, 2U, 2U}
+  };
 
-    /***** Initialize the chip  *****/
-    if (ctlwizchip(CW_INIT_WIZCHIP, (void*)memsize) == -1){
-    	printf("Error while initializing WIZCHIP\r\n");
-    	return -1;
-    }
-    printf("WIZCHIP Initialized\r\n");
+  w5500BusMutex = xSemaphoreCreateMutexStatic(&w5500BusMutexStorage);
+  if (w5500BusMutex == NULL) return (W5500_ERROR_MUTEX);
+  if (SPI_Enable(SPI1) != SUCCESS) return (W5500_ERROR_CHIP_INIT);
 
-    /***** check communication by reading Version  *****/
-    uint8_t ver = getVERSIONR();
-    if (ver != 0x04){
-    	printf("Error Communicating with W5500\t Version: 0x%02X\r\n", ver);
-    	return -2;
-    }
-    printf("Checking Link Status..\r\n");
+  w5500_Reset();
+  reg_wizchip_cs_cbfunc(w5500_Select, w5500_Release);
+  reg_wizchip_spi_cbfunc(w5500_ReadByte, w5500_WriteByte);
 
- 	/*****  CHeck Link Status  *****/
-    uint8_t link = PHY_LINK_OFF;
-    uint8_t retries = 10;
-    while ((link != PHY_LINK_ON) && (retries > 0)){
-        ctlwizchip(CW_GET_PHYLINK, &link);
-        if (link == PHY_LINK_ON) printf("Link: UP\r\n");
-        else printf("Link: DOWN Retrying : %d\r\n", 10-retries);
-        retries--;
-        // HAL_Delay(500);
-        Delay_Milliseconds(500);
-    }
-    if (link != PHY_LINK_ON){
-    	printf ("Link is Down,please reconnect and retry\nExiting Setup..\r\n");
-    	return 3;
-    }
+  if (ctlwizchip(CW_INIT_WIZCHIP, (void*)socketMemory) == -1) {
+    printf("W5500: initialization failed\n");
+    return (W5500_ERROR_CHIP_INIT);
+  }
+  if (w5500_CheckIdentity() != SUCCESS) return (W5500_ERROR_VERSION);
+  if (w5500_WaitForLink() != SUCCESS) return (W5500_ERROR_LINK);
 
-    /***** Use DHCP or Static IP  *****/
-#if USE_DHCP
-    printf ("Using DHCP.. Please Wait..\r\n");
-    setSHAR(netInfo.mac);
-    DHCP_init(DHCP_SOCKET, DHCP_buffer);
+  w5500_ConfigureNetwork();
+  DNS_init(W5500_DNS_SOCKET, w5500DnsBuffer);
+  w5500_PrintNetwork();
+  return (0);
+}
 
-    reg_dhcp_cbfunc(Callback_IPAssigned, Callback_IPAssigned, Callback_IPConflict);
 
-    retries = 20;
-    while((!ip_assigned) && (retries > 0)) {
-        DHCP_run();
-        // HAL_Delay(500);
-        Delay_Milliseconds(500);
-        retries--;
-    }
-    if(!ip_assigned) {
-    	// DHCP Failed, switch to static IP
-    	printf ("DHCP Failed, switching to static IP\r\n");
-    	ctlnetwork(CN_SET_NETINFO, (void*)&netInfo);
-    }
-    else {
-    	// if IP is allocated, read it
-        getIPfromDHCP(netInfo.ip);
-        getGWfromDHCP(netInfo.gw);
-        getSNfromDHCP(netInfo.sn);
-        getDNSfromDHCP(netInfo.dns);
 
-        // Now apply them to the chip
-        ctlnetwork(CN_SET_NETINFO, (void*)&netInfo);
-        printf("DHCP IP assigned successfully\r\n");
-    }
 
+// -------------------------------------------------------------
+void W5500_GetDnsServer(uint8_t* address) {
+  if (address == NULL) return;
+  memcpy(address, w5500Network.dns, 4U);
+}
+
+
+
+
+// -------------------------------------------------------------
+static void w5500_Select(void) {
+  (void)xSemaphoreTake(w5500BusMutex, portMAX_DELAY);
+  W5500_SELECT();
+}
+
+
+
+
+// -------------------------------------------------------------
+static void w5500_Release(void) {
+  W5500_RELEASE();
+  (void)xSemaphoreGive(w5500BusMutex);
+}
+
+
+
+
+// -------------------------------------------------------------
+static uint8_t w5500_ReadByte(void) {
+  uint8_t byte = 0U;
+  (void)SPI_Read8(SPI1, &byte, 1U);
+  return (byte);
+}
+
+
+
+
+// -------------------------------------------------------------
+static void w5500_WriteByte(uint8_t byte) {
+  (void)SPI_Write8(SPI1, &byte, 1U);
+}
+
+
+
+
+// -------------------------------------------------------------
+static void w5500_Reset(void) {
+  W5500_RESET_L();
+  Delay_Milliseconds(50U);
+  W5500_RESET_H();
+  Delay_Milliseconds(200U);
+}
+
+
+
+
+// -------------------------------------------------------------
+static ErrorStatus w5500_CheckIdentity(void) {
+  uint8_t version = getVERSIONR();
+
+  if (version != 0x04U) {
+    printf("W5500: unexpected version 0x%02x\n", version);
+    return (ERROR);
+  }
+
+  printf("W5500: initialized\n");
+  return (SUCCESS);
+}
+
+
+
+
+// -------------------------------------------------------------
+static ErrorStatus w5500_WaitForLink(void) {
+  uint8_t link = PHY_LINK_OFF;
+
+  for (uint8_t attempt = 0U;
+       (attempt < W5500_LINK_RETRIES) && (link != PHY_LINK_ON);
+       attempt++) {
+    (void)ctlwizchip(CW_GET_PHYLINK, &link);
+    if (link != PHY_LINK_ON) Delay_Milliseconds(500U);
+  }
+
+  printf("W5500 link: %s\n", (link == PHY_LINK_ON) ? "UP" : "DOWN");
+  return ((link == PHY_LINK_ON) ? SUCCESS : ERROR);
+}
+
+
+
+
+// -------------------------------------------------------------
+static void w5500_ConfigureNetwork(void) {
+#if W5500_USE_DHCP
+  uint8_t retries = W5500_DHCP_RETRIES;
+
+  w5500AddressAssigned = false;
+  setSHAR(w5500Network.mac);
+  DHCP_init(W5500_DHCP_SOCKET, w5500DhcpBuffer);
+  reg_dhcp_cbfunc(
+    w5500_AddressAssigned,
+    w5500_AddressAssigned,
+    w5500_AddressConflict
+  );
+
+  while (!w5500AddressAssigned && (retries-- > 0U)) {
+    (void)DHCP_run();
+    Delay_Milliseconds(500U);
+  }
+
+  if (w5500AddressAssigned) {
+    getIPfromDHCP(w5500Network.ip);
+    getGWfromDHCP(w5500Network.gw);
+    getSNfromDHCP(w5500Network.sn);
+    getDNSfromDHCP(w5500Network.dns);
+    printf("W5500 network: DHCP\n");
+  } else {
+    w5500Network.dhcp = NETINFO_STATIC;
+    printf("W5500 network: static fallback\n");
+  }
 #else
-    // use static IP (Not DHCP)
-    printf ("Using Static IP..\r\n");
-    ctlnetwork(CN_SET_NETINFO, (void*)&netInfo);
+  printf("W5500 network: static\n");
 #endif
 
-    /***** Configure DNS  *****/
-    // HAL_Delay(500);
-    Delay_Milliseconds(500);
-    printf("Configuring DNS..\r\n");
-    DNS_init(DNS_SOCKET, DNS_buffer);
-
-    /***** Print assigned IP on the console  *****/
-    wiz_NetInfo tmpInfo;
-    ctlnetwork(CN_GET_NETINFO, &tmpInfo);
-    printf("IP: %d.%d.%d.%d\r\n", tmpInfo.ip[0], tmpInfo.ip[1], tmpInfo.ip[2], tmpInfo.ip[3]);
-    printf("SUBNET: %d.%d.%d.%d\r\n", tmpInfo.sn[0], tmpInfo.sn[1], tmpInfo.sn[2], tmpInfo.sn[3]);
-    printf("GATEWAY: %d.%d.%d.%d\r\n", tmpInfo.gw[0], tmpInfo.gw[1], tmpInfo.gw[2], tmpInfo.gw[3]);
-    printf("DNS: %d.%d.%d.%d\r\n", tmpInfo.dns[0], tmpInfo.dns[1], tmpInfo.dns[2], tmpInfo.dns[3]);
-
-
-    SPI_Disable(SPI1);
-
-    return 0;
+  ctlnetwork(CN_SET_NETINFO, &w5500Network);
 }
+
+
+
+
+// -------------------------------------------------------------
+static void w5500_PrintNetwork(void) {
+  wiz_NetInfo network;
+
+  ctlnetwork(CN_GET_NETINFO, &network);
+  printf(
+    "IP: %u.%u.%u.%u\n",
+    network.ip[0], network.ip[1], network.ip[2], network.ip[3]
+  );
+  printf(
+    "SUBNET: %u.%u.%u.%u\n",
+    network.sn[0], network.sn[1], network.sn[2], network.sn[3]
+  );
+  printf(
+    "GATEWAY: %u.%u.%u.%u\n",
+    network.gw[0], network.gw[1], network.gw[2], network.gw[3]
+  );
+  printf(
+    "DNS: %u.%u.%u.%u\n",
+    network.dns[0], network.dns[1], network.dns[2], network.dns[3]
+  );
+}
+
+
+#if W5500_USE_DHCP
+
+// -------------------------------------------------------------
+static void w5500_AddressAssigned(void) {
+  w5500AddressAssigned = true;
+}
+
+
+
+
+// -------------------------------------------------------------
+static void w5500_AddressConflict(void) {
+  w5500AddressAssigned = false;
+}
+
+#endif /* W5500_USE_DHCP */

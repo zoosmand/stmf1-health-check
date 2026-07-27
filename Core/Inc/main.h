@@ -55,6 +55,7 @@ extern "C" {
 #include "health_service.h"
 #include "temperature_service.h"
 #include "tcp_service.h"
+#include "http_monitor_service.h"
 
 #include "wizchip_port.h"
 

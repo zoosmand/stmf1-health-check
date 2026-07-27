@@ -89,6 +89,7 @@ int main(void) {
   /* TCP command service */
   if (!FLAG_CHECK(peripheralReadiness, PERIPHERAL_SPI1_ERROR_BIT)) {
     TcpCommandService_Init();
+    HttpMonitorService_Init();
   }
 
   /* Run the internal health and watchdog service last. */

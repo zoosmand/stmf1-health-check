@@ -80,11 +80,8 @@ static void tcpCommandService_Task(void* parameters) {
   (void) parameters;
 
   while (1) {
-    if (SPI_Enable(SPI1) == SUCCESS) {
-      TcpCommandService_Run();
-      tcpHealthService_Run();
-      (void) SPI_Disable(SPI1);
-    }
+    TcpCommandService_Run();
+    tcpHealthService_Run();
     HealthService_Report(HEALTH_COMPONENT_TCP);
     vTaskDelay(1U);
   }
